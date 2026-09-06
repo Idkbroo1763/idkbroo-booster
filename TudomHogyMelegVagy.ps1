@@ -445,12 +445,12 @@ $BassSlider.Add_ValueChanged({ Update-Labels })
 $FrequencySlider.Add_ValueChanged({ Update-Labels })
 $script:activeProfile = 'Custom'
 $MusicButton.Add_Click({ $script:activeProfile = 'Music'; Set-Profile 170 5 72 $true; Set-EqValues @(2,2,1,-1,-1,0,1,2,1,1) })
-$GameButton.Add_Click({ $script:activeProfile = 'FiveM RP'; Set-Profile 135 2 85 $true; Set-EqValues @(-1,0,1,-1,-1,0,2,2,1,0) })
-$CombatButton.Add_Click({ $script:activeProfile = 'FiveM Combat'; Set-Profile 130 1 90 $true; Set-EqValues @(-3,-2,-1,-1,0,1,3,3,2,0) })
-$R6Button.Add_Click({ $script:activeProfile = 'R6'; Set-Profile 135 1 90 $true; Set-EqValues @(-2,-1,0,-1,-1,0,2,3,1,0) })
-$DiscordButton.Add_Click({ $script:activeProfile = 'Discord'; Set-Profile 130 0 80 $true; Set-EqValues @(-6,-5,-4,-2,0,2,4,3,0,-1) })
-$MovieButton.Add_Click({ $script:activeProfile = 'Movie'; Set-Profile 145 6 65 $true; Set-EqValues @(2,2,1,0,0,1,2,2,1,1) })
-$HeavyButton.Add_Click({ $script:activeProfile = 'Heavy'; Set-Profile 180 12 60 $true; Set-EqValues @(2,1,0,0,0,0,0,0,0,0) })
+$GameButton.Add_Click({ $script:activeProfile = 'FiveM RP'; Set-Profile 140 2 80 $true; Set-EqValues @(-2,-1,0,-2,-2,0,2,3,1,0) })
+$CombatButton.Add_Click({ $script:activeProfile = 'FiveM Combat'; Set-Profile 140 1 85 $true; Set-EqValues @(-3,-2,-1,-2,-1,1,3,3,2,0) })
+$R6Button.Add_Click({ $script:activeProfile = 'R6'; Set-Profile 140 0 90 $true; Set-EqValues @(-4,-3,-2,-2,-1,1,3,4,2,0) })
+$DiscordButton.Add_Click({ $script:activeProfile = 'Discord'; Set-Profile 130 0 80 $true; Set-EqValues @(-3,-2,-1,-2,-1,1,3,2,0,-1) })
+$MovieButton.Add_Click({ $script:activeProfile = 'Movie'; Set-Profile 145 5 65 $true; Set-EqValues @(1,1,0,-1,-2,0,2,2,1,1) })
+$HeavyButton.Add_Click({ $script:activeProfile = 'Heavy'; Set-Profile 175 11 58 $true; Set-EqValues @(2,2,1,-2,-2,-1,1,2,1,0) })
 $ResetButton.Add_Click({ $script:activeProfile = 'Custom'; Set-Profile 100 0 75 $true; Set-EqValues @(0,0,0,0,0,0,0,0,0,0) })
 
 $apoDirectory = Get-ApoConfigDirectory
@@ -824,6 +824,7 @@ V1.0.0 – ELSŐ NYILVÁNOS KIADÁS
 • Modern, témázható Windows-felület.
 • 0–300%-os hangerő-erősítés.
 • Zene, FiveM, R6, Discord és Film profilok.
+• Finomhangolt, kevésbé dobozos játék-, beszéd-, film- és basszusprofilok.
 • Tízsávos equalizer, basszuskiemelés és torzításvédelem.
 • Saját profil mentése, betöltése, importálása és exportálása.
 • Automatikus profilváltás és globális gyorsbillentyűk.
