@@ -1,18 +1,18 @@
-#define AppName "idkbroo Booster"
+#define AppName "SoundLift"
 #define AppVersion "1.0.0"
 #define AppPublisher "idkbroo"
-#define AppExeName "idkbroo Booster.exe"
+#define AppExeName "SoundLift.exe"
 
 [Setup]
 AppId={{6C485E28-1973-4E4B-89CC-C23DE2C33A2A}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={autopf}\idkbroo Booster
+DefaultDirName={autopf}\SoundLift
 DefaultGroupName={#AppName}
 UninstallDisplayIcon={app}\{#AppExeName}
 OutputDir=dist
-OutputBaseFilename=idkbroo Booster Setup
+OutputBaseFilename=SoundLift Setup
 SetupIconFile=idkbroo Booster.ico
 Compression=lzma2
 SolidCompression=yes
@@ -23,7 +23,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\idkbroo Booster.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\SoundLift.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"
