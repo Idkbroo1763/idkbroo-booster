@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -183,7 +183,7 @@ $xaml = @'
     <Grid Grid.Row="0" Margin="30,20,30,13">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
-        <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
+        <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
         <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
@@ -346,7 +346,7 @@ $xaml = @'
 
 $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
-$appIconPath = Join-Path $script:appDirectory 'idkbroo Booster.ico'
+$appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
@@ -492,11 +492,11 @@ $ApplyButton.Add_Click({
     try {
         $apoDirectory = Get-ApoConfigDirectory
         if (-not $apoDirectory) {
-            [System.Windows.MessageBox]::Show("Előbb telepítsd az Equalizer APO-t, majd indítsd újra az appot.`n`nA pontos lépéseket a TELEPITES.txt tartalmazza.", 'Tudom, hogy meleg vagy', 'OK', 'Warning') | Out-Null
+            [System.Windows.MessageBox]::Show("Előbb telepítsd az Equalizer APO-t, majd indítsd újra az appot.`n`nA pontos lépéseket a TELEPÍTÉS.txt tartalmazza.", 'SoundLift', 'OK', 'Warning') | Out-Null
             return
         }
         if (-not (Test-Administrator)) {
-            $answer = [System.Windows.MessageBox]::Show('A beállítás mentéséhez rendszergazdai jogosultság kell. Újraindítsam az appot rendszergazdaként?', 'Tudom, hogy meleg vagy', 'YesNo', 'Question')
+            $answer = [System.Windows.MessageBox]::Show('A beállítás mentéséhez rendszergazdai jogosultság kell. Újraindítsam az appot rendszergazdaként?', 'SoundLift', 'YesNo', 'Question')
             if ($answer -eq 'Yes') {
                 Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
                 $window.Close()
@@ -538,7 +538,7 @@ $ApplyButton.Add_Click({
         if ((Test-Path $mainConfig) -and (-not (Test-Path $backupConfig))) { [IO.File]::Copy($mainConfig, $backupConfig, $false) }
         if (Test-Path $ownConfig) { [IO.File]::Copy($ownConfig, "$ownConfig.undo", $true) }
         $content = @(
-            '# Tudom, hogy meleg vagy - managed configuration',
+            '# SoundLift - managed configuration',
             ('# Volume: {0}% | Bass: {1} dB | Frequency: {2} Hz | Protection: {3}' -f [int]$volumePercent, [int]$bassDb, $frequency, $SafetyCheck.IsChecked),
             ('Preamp: {0} dB' -f $preampDb.ToString('0.00', [Globalization.CultureInfo]::InvariantCulture)),
             ('Filter 1: ON LS Fc 45 Hz Gain {0} dB' -f $subGain.ToString('0.0', [Globalization.CultureInfo]::InvariantCulture)),
@@ -562,13 +562,13 @@ $ApplyButton.Add_Click({
         # Remove the include line used by older versions so effects never stack.
         $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*BassForge\.txt\s*\r?\n?', '')
         if ($mainText -notmatch '(?im)^\s*Include:\s*TudomHogyMelegVagy\.txt\s*$') {
-            $mainText += "`r`n# Tudom, hogy meleg vagy`r`n$includeLine`r`n"
+            $mainText += "`r`n# SoundLift`r`n$includeLine`r`n"
         }
         Write-TextWithRetry $mainConfig $mainText
         $StatusText.Text = "OK - Beállítás alkalmazva: $([int]$volumePercent)% / $([int]$bassDb) dB"
         $StatusBorder.Background = '#143126'
     } catch {
-        [System.Windows.MessageBox]::Show("Nem sikerült menteni:`n$($_.Exception.Message)", 'Tudom, hogy meleg vagy - hiba', 'OK', 'Error') | Out-Null
+        [System.Windows.MessageBox]::Show("Nem sikerült menteni:`n$($_.Exception.Message)", 'SoundLift – hiba', 'OK', 'Error') | Out-Null
     } finally {
         $script:applyBusy = $false
     }
@@ -616,7 +616,7 @@ function Get-DiagnosticsReport {
     $activeOutput = [AudioAppNative]::GetDefaultOutputName()
     $apo = Get-ApoConfigDirectory
 
-    $lines.Add('IDKBROO BOOSTER – AUTOMATIKUS DIAGNOSZTIKA')
+    $lines.Add('SOUNDLIFT – AUTOMATIKUS DIAGNOSZTIKA')
     $lines.Add(('=' * 48))
     $lines.Add("Időpont: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
     $lines.Add("Alkalmazásverzió: $script:appVersion")
@@ -705,7 +705,7 @@ function Get-DiagnosticsReport {
 function Show-DiagnosticsWindow {
     $report = Get-DiagnosticsReport
     $dialog = [Windows.Window]::new()
-    $dialog.Title = "idkbroo Booster $script:appVersion – Diagnosztika"
+    $dialog.Title = "SoundLift $script:appVersion – Diagnosztika"
     $dialog.Width = 760; $dialog.Height = 590; $dialog.MinWidth = 620; $dialog.MinHeight = 440
     $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window
     $dialog.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#0B0B0D'))
@@ -752,7 +752,7 @@ function Show-DiagnosticsWindow {
     $saveButton.Add_Click({
         $saveDialog = [Microsoft.Win32.SaveFileDialog]::new()
         $saveDialog.Filter = 'Szövegfájl (*.txt)|*.txt'
-        $saveDialog.FileName = "idkbroo-diagnosztika-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
+        $saveDialog.FileName = "SoundLift-diagnosztika-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
         if ($saveDialog.ShowDialog()) { [IO.File]::WriteAllText($saveDialog.FileName, $report, [Text.Encoding]::UTF8) }
     }.GetNewClosure())
     $closeButton.Add_Click({ $dialog.Close() }.GetNewClosure())
@@ -767,18 +767,18 @@ $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 function Check-AppUpdate {
     param([switch]$Silent)
     try {
-        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/benesicsbeni-debug/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'idkbroo-Booster' } -TimeoutSec 8
+        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/benesicsbeni-debug/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'SoundLift' } -TimeoutSec 8
         $latestVersion = [version](([string]$latestText).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
-            $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'idkbroo Booster – Frissítés', 'YesNo', 'Information')
+            $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'SoundLift – Frissítés', 'YesNo', 'Information')
             if ($answer -eq 'Yes') { Start-Process 'https://github.com/benesicsbeni-debug/idkbroo-booster/actions' }
         } elseif (-not $Silent) {
-            [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'idkbroo Booster – Frissítés', 'OK', 'Information') | Out-Null
+            [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'SoundLift – Frissítés', 'OK', 'Information') | Out-Null
         }
     } catch {
         if (-not $Silent) {
-            [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`nEllenőrizd az internetkapcsolatot, vagy próbáld újra később.`n`n$($_.Exception.Message)", 'idkbroo Booster – Frissítés', 'OK', 'Warning') | Out-Null
+            [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`nEllenőrizd az internetkapcsolatot, vagy próbáld újra később.`n`n$($_.Exception.Message)", 'SoundLift – Frissítés', 'OK', 'Warning') | Out-Null
         }
     }
 }
@@ -786,7 +786,7 @@ $UpdateButton.Add_Click({ Check-AppUpdate })
 
 function Show-AboutWindow {
     $dialog = [Windows.Window]::new()
-    $dialog.Title = 'Névjegy – idkbroo Booster'; $dialog.Width = 620; $dialog.Height = 535
+    $dialog.Title = 'Névjegy – SoundLift'; $dialog.Width = 620; $dialog.Height = 535
     $dialog.ResizeMode = 'NoResize'; $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window
     $dialog.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#09090B'))
     if (Test-Path $appIconPath) { try { $dialog.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { } }
@@ -798,11 +798,11 @@ function Show-AboutWindow {
     $card.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#111113'))
     $card.BorderBrush = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#29292E')); $card.BorderThickness = [Windows.Thickness]::new(1)
     $content = [Windows.Controls.StackPanel]::new()
-    $brand = [Windows.Controls.TextBlock]::new(); $brand.Text = 'IDKBROO BOOSTER'; $brand.FontSize = 29; $brand.FontWeight = 'Bold'; $brand.Foreground = $window.Resources['AccentTextBrush']
+    $brand = [Windows.Controls.TextBlock]::new(); $brand.Text = 'SOUNDLIFT'; $brand.FontSize = 29; $brand.FontWeight = 'Bold'; $brand.Foreground = $window.Resources['AccentTextBrush']
     $version = [Windows.Controls.TextBlock]::new(); $version.Text = "Windows rendszerhang-kezelő  •  V$script:appVersion"; $version.FontSize = 12; $version.Foreground = [Windows.Media.Brushes]::Gray; $version.Margin = [Windows.Thickness]::new(0,5,0,20)
-    $description = [Windows.Controls.TextBlock]::new(); $description.Text = 'Az idkbroo Booster egy ingyenes Windows-hangvezérlő, amellyel profilok, basszuskiemelés, tízsávos equalizer és akár 300%-os hangerő-erősítés használható az Equalizer APO segítségével.'; $description.TextWrapping = 'Wrap'; $description.FontSize = 14; $description.LineHeight = 22; $description.Foreground = [Windows.Media.Brushes]::LightGray
+    $description = [Windows.Controls.TextBlock]::new(); $description.Text = 'A SoundLift egy ingyenes Windows-hangvezérlő, amellyel profilok, basszuskiemelés, tízsávos equalizer és akár 300%-os hangerő-erősítés használható az Equalizer APO segítségével.'; $description.TextWrapping = 'Wrap'; $description.FontSize = 14; $description.LineHeight = 22; $description.Foreground = [Windows.Media.Brushes]::LightGray
     $creator = [Windows.Controls.TextBlock]::new(); $creator.Text = "Készítette: ɪᴅᴋʙʀᴏᴏ`nDiscord: idkbroo_6"; $creator.FontSize = 14; $creator.FontWeight = 'SemiBold'; $creator.Foreground = [Windows.Media.Brushes]::White; $creator.Margin = [Windows.Thickness]::new(0,22,0,18)
-    $copyright = [Windows.Controls.TextBlock]::new(); $copyright.Text = '© 2026 idkbroo. Minden jog fenntartva. Az idkbroo Booster független projekt; az Equalizer APO neve és jogai a saját tulajdonosait illetik. A túl magas hangerő halláskárosodást okozhat.'; $copyright.TextWrapping = 'Wrap'; $copyright.FontSize = 11; $copyright.LineHeight = 17; $copyright.Foreground = [Windows.Media.Brushes]::Gray
+    $copyright = [Windows.Controls.TextBlock]::new(); $copyright.Text = '© 2026 idkbroo. Minden jog fenntartva. A SoundLift független projekt; az Equalizer APO neve és jogai a saját tulajdonosait illetik. A túl magas hangerő halláskárosodást okozhat.'; $copyright.TextWrapping = 'Wrap'; $copyright.FontSize = 11; $copyright.LineHeight = 17; $copyright.Foreground = [Windows.Media.Brushes]::Gray
     $content.Children.Add($brand) | Out-Null; $content.Children.Add($version) | Out-Null; $content.Children.Add($description) | Out-Null; $content.Children.Add($creator) | Out-Null; $content.Children.Add($copyright) | Out-Null
     $card.Child = $content; [Windows.Controls.Grid]::SetRow($card, 0); $root.Children.Add($card) | Out-Null
 
@@ -832,7 +832,7 @@ V1.0.0 – ELSŐ NYILVÁNOS KIADÁS
 • Névjegy, közvetlen Discord-kapcsolat és részletes telepítési útmutató.
 "@
     $dialog = [Windows.Window]::new()
-    $dialog.Title = "idkbroo Booster $script:appVersion – Frissítési előzmények"
+    $dialog.Title = "SoundLift $script:appVersion – Frissítési előzmények"
     $dialog.Width = 720; $dialog.Height = 590; $dialog.MinWidth = 560; $dialog.MinHeight = 420
     $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window
     $dialog.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#09090B'))
@@ -852,7 +852,7 @@ $ChangelogButton.Add_Click({ Show-ChangelogWindow })
 
 function Show-FirstRunWizard {
     $wizard = [Windows.Window]::new()
-    $wizard.Title = 'idkbroo Booster – Első indítás'; $wizard.Width = 650; $wizard.Height = 470
+    $wizard.Title = 'SoundLift – Első indítás'; $wizard.Width = 650; $wizard.Height = 470
     $wizard.ResizeMode = 'NoResize'; $wizard.WindowStartupLocation = 'CenterOwner'; $wizard.Owner = $window
     $wizard.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#09090B'))
     $root = [Windows.Controls.Grid]::new(); $root.Margin = [Windows.Thickness]::new(28)
@@ -872,7 +872,7 @@ function Show-FirstRunWizard {
     $adminState = if (Test-Administrator) { 'Rendben' } else { 'Nincs rendszergazdai jogosultság' }
     $apoState = if ($apo) { 'Telepítve' } else { 'Nem található' }
     $pages = @(
-        @{ Title='Üdv az idkbroo Boosterben!'; Body="Ez a rövid beállítás segít, hogy a hangerő- és EQ-profilok valóban a megfelelő hangeszközön működjenek.`n`nA program az Equalizer APO-ra épül, ezért annak telepítve kell lennie." },
+        @{ Title='Üdv a SoundLiftben!'; Body="Ez a rövid beállítás segít, hogy a hangerő- és EQ-profilok valóban a megfelelő hangeszközön működjenek.`n`nA program az Equalizer APO-ra épül, ezért annak telepítve kell lennie." },
         @{ Title='Gyors rendszerellenőrzés'; Body="Equalizer APO: $apoState`nRendszergazdai futtatás: $adminState`nAktív hangkimenet: $output`n`nHa az APO nem található, telepítsd az Equalizer APO-t, majd indítsd újra ezt a programot." },
         @{ Title='Már majdnem kész'; Body="1. Nyisd meg a Hangeszközök menüt.`n2. Pipáld ki az aktív lejátszóeszközt.`n3. Indítsd újra a Windowst, ha az APO ezt kéri.`n4. Válassz egy profilt, majd nyomd meg az ALKALMAZÁS gombot.`n`nA Diagnosztika gomb később segít a hibakeresésben." }
     )
@@ -996,7 +996,7 @@ $autoTimer.Start()
 
 # Start with Windows using a normal, removable shortcut.
 $startupDirectory = [Environment]::GetFolderPath('Startup')
-$startupShortcut = Join-Path $startupDirectory 'TudomHogyMelegVagy.lnk'
+$startupShortcut = Join-Path $startupDirectory 'SoundLift.lnk'
 $StartupCheck.IsChecked = Test-Path $startupShortcut
 $StartupCheck.Add_Click({
     try {
@@ -1056,7 +1056,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V1.0'
+$script:trayIcon.Text = 'SoundLift V1.0'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
