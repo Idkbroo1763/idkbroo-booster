@@ -1,0 +1,34 @@
+name: Build Windows application
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build idkbroo Booster.exe
+        shell: powershell
+        run: .\build-windows.ps1
+
+      - name: Build installer
+        shell: powershell
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          & $iscc '.\installer.iss'
+
+      - name: Upload Windows files
+        uses: actions/upload-artifact@v4
+        with:
+          name: idkbroo-Booster-Windows
+          path: |
+            dist/idkbroo Booster.exe
+            dist/idkbroo Booster Setup.exe
+            dist/idkbroo Booster.ico
+          if-no-files-found: error
