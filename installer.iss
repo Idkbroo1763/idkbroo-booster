@@ -1,5 +1,5 @@
 #define AppName "idkbroo Booster"
-#define AppVersion "5.6.0"
+#define AppVersion "1.0.0"
 #define AppPublisher "idkbroo"
 #define AppExeName "idkbroo Booster.exe"
 
