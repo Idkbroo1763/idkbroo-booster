@@ -1,6 +1,20 @@
 ﻿$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+
+# PS2EXE alatt a $PSScriptRoot üres lehet. Ilyenkor az EXE saját mappáját
+# használjuk minden alkalmazáshoz tartozó fájl és parancsikon alapjaként.
+$script:isPackagedExe = [string]::IsNullOrWhiteSpace($PSScriptRoot)
+$script:appDirectory = if ($script:isPackagedExe) {
+    [AppDomain]::CurrentDomain.BaseDirectory.TrimEnd([IO.Path]::DirectorySeparatorChar)
+} else {
+    $PSScriptRoot
+}
+$script:appLaunchPath = if ($script:isPackagedExe) {
+    [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+} else {
+    Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
+}
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -278,7 +292,7 @@ $xaml = @'
 
 $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
-$appIconPath = Join-Path $PSScriptRoot 'idkbroo Booster.ico'
+$appIconPath = Join-Path $script:appDirectory 'idkbroo Booster.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
@@ -589,8 +603,8 @@ $StartupCheck.Add_Click({
         if ($StartupCheck.IsChecked) {
             $shell = New-Object -ComObject WScript.Shell
             $shortcut = $shell.CreateShortcut($startupShortcut)
-            $shortcut.TargetPath = Join-Path $PSScriptRoot 'TudomHogyMelegVagy.bat'
-            $shortcut.WorkingDirectory = $PSScriptRoot
+            $shortcut.TargetPath = $script:appLaunchPath
+            $shortcut.WorkingDirectory = $script:appDirectory
             if (Test-Path $appIconPath) { $shortcut.IconLocation = "$appIconPath,0" }
             $shortcut.Save()
         } elseif (Test-Path $startupShortcut) {
