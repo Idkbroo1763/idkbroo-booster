@@ -553,7 +553,30 @@ $DeviceButton.Add_Click({
         $candidates += @(Get-ChildItem -LiteralPath $installDirectory -Filter '*.exe' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Device|Configur' } | Select-Object -ExpandProperty FullName)
     }
     $selector = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-    if ($selector) { Start-Process $selector -Verb RunAs } else { [System.Windows.MessageBox]::Show('Az Equalizer APO eszközválasztó nem található.', 'Eszközök') | Out-Null }
+    if ($selector) {
+        try {
+            $selectorDirectory = Split-Path -LiteralPath $selector -Parent
+            $platformDirectory = Join-Path $selectorDirectory 'platforms'
+            $oldQtPlatformPath = $env:QT_QPA_PLATFORM_PLUGIN_PATH
+            if (Test-Path $platformDirectory) {
+                $env:QT_QPA_PLATFORM_PLUGIN_PATH = $platformDirectory
+            }
+
+            $startInfo = New-Object Diagnostics.ProcessStartInfo
+            $startInfo.FileName = $selector
+            $startInfo.WorkingDirectory = $selectorDirectory
+            $startInfo.UseShellExecute = $true
+            $startInfo.Verb = 'runas'
+            [void][Diagnostics.Process]::Start($startInfo)
+
+            $env:QT_QPA_PLATFORM_PLUGIN_PATH = $oldQtPlatformPath
+        } catch {
+            $env:QT_QPA_PLATFORM_PLUGIN_PATH = $oldQtPlatformPath
+            [System.Windows.MessageBox]::Show("A hangeszközválasztó nem indítható el:`n$($_.Exception.Message)", 'Eszközök') | Out-Null
+        }
+    } else {
+        [System.Windows.MessageBox]::Show('Az Equalizer APO eszközválasztó nem található.', 'Eszközök') | Out-Null
+    }
 })
 
 function Play-TestTone([int]$frequency = 60, [double]$seconds = 1.5) {
