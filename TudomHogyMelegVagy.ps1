@@ -720,13 +720,12 @@ $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 function Check-AppUpdate {
     param([switch]$Silent)
     try {
-        $headers = @{ 'User-Agent' = 'idkbroo-Booster'; 'Accept' = 'application/vnd.github+json' }
-        $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/benesicsbeni-debug/idkbroo-booster/releases/latest' -Headers $headers -TimeoutSec 8
-        $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
+        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/benesicsbeni-debug/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'idkbroo-Booster' } -TimeoutSec 8
+        $latestVersion = [version](([string]$latestText).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
             $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'idkbroo Booster – Frissítés', 'YesNo', 'Information')
-            if ($answer -eq 'Yes') { Start-Process ([string]$release.html_url) }
+            if ($answer -eq 'Yes') { Start-Process 'https://github.com/benesicsbeni-debug/idkbroo-booster/actions' }
         } elseif (-not $Silent) {
             [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'idkbroo Booster – Frissítés', 'OK', 'Information') | Out-Null
         }
