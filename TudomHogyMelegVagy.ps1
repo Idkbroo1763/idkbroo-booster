@@ -208,7 +208,20 @@ $xaml = @'
           <StackPanel Grid.Row="2">
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
             <TextBlock Text="T É M A" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
-            <ComboBox Name="ThemeCombo" Height="32" Margin="0,0,0,9" Background="#18181B" Foreground="#F8FAFC" BorderBrush="#303035"/>
+            <ComboBox Name="ThemeCombo" Height="34" Margin="0,0,0,9" Padding="8,3"
+                      Background="#F4F4F5" Foreground="#111113" BorderBrush="#52525B" FontWeight="SemiBold">
+              <ComboBox.Resources>
+                <Style TargetType="{x:Type ComboBoxItem}">
+                  <Setter Property="Foreground" Value="#111113"/>
+                  <Setter Property="Background" Value="#F4F4F5"/>
+                  <Setter Property="Padding" Value="9,6"/>
+                  <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#FFD5DB"/></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#FFB3BE"/></Trigger>
+                  </Style.Triggers>
+                </Style>
+              </ComboBox.Resources>
+            </ComboBox>
             <TextBlock Name="VersionText" Text="Telepített verzió: 5.1.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
