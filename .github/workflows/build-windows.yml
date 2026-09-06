@@ -31,4 +31,5 @@ jobs:
             dist/idkbroo Booster.exe
             dist/idkbroo Booster Setup.exe
             dist/idkbroo Booster.ico
+            TELEPÍTÉS.txt
           if-no-files-found: error
