@@ -91,21 +91,21 @@ function Get-ApoConfigDirectory {
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Tudom, hogy meleg vagy V5" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
-        WindowStartupLocation="CenterScreen" Background="#080A10" Foreground="#F8FAFC"
+        WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
   <Window.Resources>
     <LinearGradientBrush x:Key="PageGradient" StartPoint="0,0" EndPoint="1,1">
-      <GradientStop Color="#090B12" Offset="0"/><GradientStop Color="#11102A" Offset="0.55"/><GradientStop Color="#090B12" Offset="1"/>
+      <GradientStop Color="#070707" Offset="0"/><GradientStop Color="#20090B" Offset="0.55"/><GradientStop Color="#070707" Offset="1"/>
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
-      <GradientStop Color="#8B5CF6" Offset="0"/><GradientStop Color="#6D28D9" Offset="1"/>
+      <GradientStop Color="#EF233C" Offset="0"/><GradientStop Color="#8B0017" Offset="1"/>
     </LinearGradientBrush>
     <DropShadowEffect x:Key="CardShadow" BlurRadius="22" ShadowDepth="4" Opacity="0.25" Color="#000000"/>
     <Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI"/></Style>
     <Style TargetType="Button">
       <Setter Property="FontFamily" Value="Segoe UI Semibold"/><Setter Property="FontSize" Value="13"/>
-      <Setter Property="Foreground" Value="#E9E7FF"/><Setter Property="Background" Value="#1B2030"/>
+      <Setter Property="Foreground" Value="#FFF1F2"/><Setter Property="Background" Value="#18181B"/>
       <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="15,10"/>
       <Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,0,8"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
@@ -116,7 +116,7 @@ $xaml = @'
               <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#2B2650"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#3A1016"/></Trigger>
               <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.72"/></Trigger>
               <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.4"/></Trigger>
             </ControlTemplate.Triggers>
@@ -143,7 +143,7 @@ $xaml = @'
         <Setter.Value>
           <ControlTemplate TargetType="Slider">
             <Grid>
-              <Border Height="8" CornerRadius="4" Background="#252B3C" VerticalAlignment="Center"/>
+              <Border Height="8" CornerRadius="4" Background="#2A2A2E" VerticalAlignment="Center"/>
               <Track Name="PART_Track" VerticalAlignment="Center">
                 <Track.DecreaseRepeatButton>
                   <RepeatButton Command="Slider.DecreaseLarge" Background="{StaticResource AccentGradient}" BorderThickness="0">
@@ -152,7 +152,7 @@ $xaml = @'
                 </Track.DecreaseRepeatButton>
                 <Track.Thumb>
                   <Thumb Width="22" Height="22" Cursor="Hand">
-                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="#8B5CF6" StrokeThickness="5"/></ControlTemplate></Thumb.Template>
+                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="#EF233C" StrokeThickness="5"/></ControlTemplate></Thumb.Template>
                   </Thumb>
                 </Track.Thumb>
                 <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton>
@@ -174,10 +174,10 @@ $xaml = @'
     <Grid Grid.Row="0" Margin="30,20,30,13">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
-        <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="#A78BFA"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V4" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="#FF4057"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5  REDLINE" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
-      <Border Name="StatusBorder" Grid.Column="1" Background="#151927" CornerRadius="13" Padding="16,11" BorderBrush="#262C3D" BorderThickness="1">
+      <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
           <TextBlock Name="StatusText" Text="Equalizer APO keresése..." FontSize="13" FontWeight="SemiBold" Foreground="#E2E8F0"/>
           <TextBlock Name="DeviceText" Text="Aktív hangkimenet: keresés..." FontSize="12" Foreground="#8B9BB4" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
@@ -188,10 +188,10 @@ $xaml = @'
     <Grid Grid.Row="1" Margin="30,0,30,28">
       <Grid.ColumnDefinitions><ColumnDefinition Width="245"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
-      <Border Grid.Column="0" Background="#111520" CornerRadius="18" Padding="16" BorderBrush="#24293A" BorderThickness="1" Effect="{StaticResource CardShadow}">
+      <Border Grid.Column="0" Background="#111113" CornerRadius="18" Padding="16" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="P R O F I L O K" FontSize="11" FontWeight="Bold" Foreground="#6E7A91" Margin="5,2,0,13"/>
+          <TextBlock Text="P R O F I L O K" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="5,2,0,13"/>
           <StackPanel Grid.Row="1">
             <Button Name="MusicButton" Content="♫   Zene"/>
             <Button Name="GameButton" Content="◆   FiveM RP"/>
@@ -203,8 +203,8 @@ $xaml = @'
             <Button Name="ResetButton" Content="↺   Alaphelyzet"/>
           </StackPanel>
           <StackPanel Grid.Row="2">
-            <Border Height="1" Background="#272D3E" Margin="0,4,0,13"/>
-            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="#A78BFA" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
+            <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
+            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="#FF4057" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
         </Grid>
@@ -212,38 +212,38 @@ $xaml = @'
 
       <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
-          <Border Background="#111520" CornerRadius="18" Padding="22,17" BorderBrush="#24293A" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="#111113" CornerRadius="18" Padding="22,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <DockPanel><TextBlock Text="Hangerő-erősítés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Hangerő-erősítés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="VolumeSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True"/>
                 <TextBlock Text="Teljes tartomány: némítás–300%" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
               <StackPanel Grid.Column="2">
-                <DockPanel><TextBlock Text="Bass Boost" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Bass Boost" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="BassSlider" Minimum="0" Maximum="24" Value="6" TickFrequency="1" IsSnapToTickEnabled="True"/>
                 <TextBlock Text="Többsávos mélyhangkiemelés" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
             </Grid>
           </Border>
 
-          <Border Background="#111520" CornerRadius="18" Padding="22,17" BorderBrush="#24293A" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="#111113" CornerRadius="18" Padding="22,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <DockPanel>
                 <TextBlock Text="Basszus középfrekvencia" FontSize="15" FontWeight="SemiBold"/>
-                <TextBlock Name="FrequencyValue" Text="75 Hz" FontSize="17" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Right"/>
+                <TextBlock Name="FrequencyValue" Text="75 Hz" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/>
               </DockPanel>
               <Slider Name="FrequencySlider" Grid.Row="1" Minimum="40" Maximum="160" Value="75" TickFrequency="5" IsSnapToTickEnabled="True"/>
             </Grid>
           </Border>
 
-          <Border Background="#111520" CornerRadius="18" Padding="22,15" BorderBrush="#24293A" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="#111113" CornerRadius="18" Padding="22,15" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="V É D E L E M   É S   A U T O M A T I Z Á L Á S" FontSize="11" FontWeight="Bold" Foreground="#6E7A91" Margin="0,0,0,8"/>
+                <TextBlock Text="V É D E L E M   É S   A U T O M A T I Z Á L Á S" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="0,0,0,8"/>
                 <WrapPanel>
                   <CheckBox Name="SafetyCheck" Content="Torzításvédelem" IsChecked="True"/>
                   <CheckBox Name="AutoProfileCheck" Content="Automatikus profilváltás"/>
@@ -257,21 +257,21 @@ $xaml = @'
             </Grid>
           </Border>
 
-          <Border Background="#111520" CornerRadius="18" Padding="22,15" BorderBrush="#24293A" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="#111113" CornerRadius="18" Padding="22,15" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <StackPanel>
               <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="1 0   S Á V O S   E Q U A L I Z E R" FontSize="11" FontWeight="Bold" Foreground="#6E7A91"/>
+                <TextBlock Text="1 0   S Á V O S   E Q U A L I Z E R" FontSize="11" FontWeight="Bold" Foreground="#9A7C80"/>
                 <TextBlock Text="-12 dB  •  +12 dB" HorizontalAlignment="Right" Foreground="#64748B" FontSize="11"/>
               </DockPanel>
-              <Border Background="#0B0E16" CornerRadius="12" Padding="12">
+              <Border Background="#0B0B0D" CornerRadius="12" Padding="12">
                 <UniformGrid Name="EqPanel" Rows="1" Columns="10"/>
               </Border>
             </StackPanel>
           </Border>
 
-          <Border Background="#111520" CornerRadius="18" Padding="18,14" BorderBrush="#24293A" BorderThickness="1">
+          <Border Background="#111113" CornerRadius="18" Padding="18,14" BorderBrush="#29292E" BorderThickness="1">
             <StackPanel>
-              <TextBlock Text="E S Z K Ö Z Ö K   É S   P R O F I L K E Z E L É S" FontSize="11" FontWeight="Bold" Foreground="#6E7A91" Margin="4,0,0,10"/>
+              <TextBlock Text="E S Z K Ö Z Ö K   É S   P R O F I L K E Z E L É S" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,10"/>
               <WrapPanel>
                 <Button Name="SaveButton" Content="Saját mentés" Style="{StaticResource UtilityButton}"/>
                 <Button Name="LoadButton" Content="Saját betöltés" Style="{StaticResource UtilityButton}"/>
@@ -313,7 +313,7 @@ for ($i = 0; $i -lt $script:eqBands.Count; $i++) {
     $slider.Minimum = -12; $slider.Maximum = 12; $slider.Value = 0; $slider.TickFrequency = 1; $slider.IsSnapToTickEnabled = $true
     $slider.Style = $window.FindResource('VerticalEqSlider')
     $valueLabel = New-Object Windows.Controls.TextBlock
-    $valueLabel.Text = '0'; $valueLabel.HorizontalAlignment = 'Center'; $valueLabel.Foreground = '#A78BFA'
+    $valueLabel.Text = '0'; $valueLabel.HorizontalAlignment = 'Center'; $valueLabel.Foreground = '#FF4057'
     [void]$column.Children.Add($bandLabel); [void]$column.Children.Add($slider); [void]$column.Children.Add($valueLabel)
     [void]$EqPanel.Children.Add($column)
     $script:eqSliders += $slider; $script:eqValueLabels += $valueLabel
