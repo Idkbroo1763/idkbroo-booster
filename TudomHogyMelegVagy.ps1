@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.4.0'
+$script:appVersion = '5.4.1'
 $script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.4" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.4.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -179,7 +179,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.4" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.4.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -223,7 +223,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.4.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.4.1" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
@@ -577,6 +577,7 @@ $appDataDirectory = Join-Path $env:APPDATA 'TudomHogyMelegVagy'
 if (-not (Test-Path $appDataDirectory)) { [void][IO.Directory]::CreateDirectory($appDataDirectory) }
 $settingsPath = Join-Path $appDataDirectory 'settings.json'
 $customProfilePath = Join-Path $appDataDirectory 'custom-profile.json'
+$onboardingMarkerPath = Join-Path $appDataDirectory 'first-run-completed.txt'
 
 function Get-DiagnosticsReport {
     $lines = New-Object Collections.Generic.List[string]
@@ -740,6 +741,11 @@ $UpdateButton.Add_Click({ Check-AppUpdate })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V5.4.1 – HIBAJAVÍTÁS
+• Javítva a Változások ablak megnyitási hibája.
+• Javítva a Hangeszközök gomb indítási hibája.
+• Az első indítási varázsló befejezése most már biztosan megmarad.
+
 V5.4.0 – FRISSÍTÉSI ELŐZMÉNYEK
 • Új Változások ablak, amely verziónként megmutatja az újdonságokat.
 • Az előzmények internetkapcsolat nélkül is elérhetők.
@@ -774,7 +780,7 @@ V5.0.0
     $grid.RowDefinitions.Add([Windows.Controls.RowDefinition]::new())
     $buttonRow = [Windows.Controls.RowDefinition]::new(); $buttonRow.Height = [Windows.GridLength]::Auto; $grid.RowDefinitions.Add($buttonRow)
     $box = [Windows.Controls.TextBox]::new(); $box.Text = $changelog.Trim(); $box.IsReadOnly = $true; $box.AcceptsReturn = $true
-    $box.TextWrapping = 'Wrap'; $box.VerticalScrollBarVisibility = 'Auto'; $box.FontSize = 14; $box.LineHeight = 23; $box.Padding = [Windows.Thickness]::new(16)
+    $box.TextWrapping = 'Wrap'; $box.VerticalScrollBarVisibility = 'Auto'; $box.FontSize = 14; $box.Padding = [Windows.Thickness]::new(16)
     $box.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#111113'))
     $box.Foreground = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#F8FAFC'))
     $box.BorderBrush = $window.Resources['AccentTextBrush']; [Windows.Controls.Grid]::SetRow($box, 0); $grid.Children.Add($box) | Out-Null
@@ -813,7 +819,7 @@ function Show-FirstRunWizard {
     $wizardState = @{ Page = 0 }
     $refreshPage = { $page = [int]$wizardState.Page; $stepText.Text = "ELSŐ INDÍTÁS  •  $($page + 1) / $($pages.Count)"; $titleText.Text = $pages[$page].Title; $bodyText.Text = $pages[$page].Body; $back.IsEnabled = $page -gt 0; $next.Content = if ($page -eq $pages.Count - 1) { 'Befejezés' } else { 'Tovább' } }
     $back.Add_Click({ if ($wizardState.Page -gt 0) { $wizardState.Page--; & $refreshPage } }.GetNewClosure())
-    $next.Add_Click({ if ($wizardState.Page -lt $pages.Count - 1) { $wizardState.Page++; & $refreshPage; return }; $script:onboardingCompleted = $true; try { (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding UTF8 } catch { }; $wizard.Close() }.GetNewClosure())
+    $next.Add_Click({ if ($wizardState.Page -lt $pages.Count - 1) { $wizardState.Page++; & $refreshPage; return }; try { [IO.File]::WriteAllText($onboardingMarkerPath, 'completed', [Text.Encoding]::UTF8); $state = Get-AppState; $state.onboardingCompleted = $true; $state | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding UTF8 } catch { }; $wizard.Close() }.GetNewClosure())
     & $refreshPage; $wizard.Content = $root; $wizard.ShowDialog() | Out-Null
 }
 
@@ -865,7 +871,7 @@ $DeviceButton.Add_Click({
     $selector = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
     if ($selector) {
         try {
-            $selectorDirectory = Split-Path -LiteralPath $selector -Parent
+            $selectorDirectory = [IO.Path]::GetDirectoryName([string]$selector)
             $platformDirectory = Join-Path $selectorDirectory 'platforms'
             $oldQtPlatformPath = $env:QT_QPA_PLATFORM_PLUGIN_PATH
             if (Test-Path $platformDirectory) {
@@ -953,6 +959,7 @@ $StartupCheck.Add_Click({
 if (Test-Path $settingsPath) {
     try { Set-AppState (Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json) } catch { }
 }
+if (Test-Path $onboardingMarkerPath) { $script:onboardingCompleted = $true }
 $window.Add_Closing({
     try { (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding UTF8 } catch { }
 })
@@ -989,7 +996,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.4'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.4.1'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
