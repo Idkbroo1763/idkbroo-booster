@@ -1,0 +1,56 @@
+IDKBROO BOOSTER – TELEPÍTÉSI ÚTMUTATÓ
+======================================
+
+FONTOS
+------
+Az idkbroo Booster az Equalizer APO hangfeldolgozóját vezérli.
+Az alkalmazás önmagában nem tudja módosítani a rendszer hangját, ezért először
+az Equalizer APO-t kell telepíteni.
+
+1. EQUALIZER APO LETÖLTÉSE
+-------------------------
+Hivatalos letöltési oldal:
+https://sourceforge.net/projects/equalizerapo/
+
+Töltsd le és indítsd el az Equalizer APO telepítőjét.
+
+2. HANGESZKÖZ KIVÁLASZTÁSA
+--------------------------
+A telepítés végén megnyílik a Configurator / Device Selector.
+
+- A Playback devices résznél jelöld be azt az eszközt, amelyen hallgatod a hangot.
+- Általában ez ugyanaz az eszköz, amely a Windowsban alapértelmezettként szerepel.
+- Ne jelöld be találomra az összes eszközt.
+- Nyomd meg az OK gombot.
+
+3. SZÁMÍTÓGÉP ÚJRAINDÍTÁSA
+--------------------------
+Az Equalizer APO telepítése után indítsd újra a számítógépet. Enélkül a booster
+nem biztos, hogy működni fog.
+
+4. IDKBROO BOOSTER TELEPÍTÉSE
+-----------------------------
+Indítsd el az „idkbroo Booster Setup.exe” fájlt, és végezd el a telepítést.
+A Windows rendszergazdai engedélyt kérhet, mert az alkalmazás a rendszerszintű
+hangbeállítást módosítja.
+
+5. ELSŐ HASZNÁLAT
+-----------------
+- Indítsd el az idkbroo Boostert.
+- Válassz egy profilt, például Zene, FiveM RP vagy R6.
+- Nyomd meg az ALKALMAZÁS gombot.
+- Először közepes hangerőn próbáld ki.
+
+FIGYELEM
+--------
+A 100% fölötti hangerő és az erős basszus halláskárosodást, recsegést vagy
+torzítást okozhat. Fokozatosan emeld a hangerőt, és torzítás esetén vedd lejjebb.
+
+HA NINCS HANGVÁLTOZÁS
+---------------------
+1. Ellenőrizd, hogy az Equalizer APO Configuratorban a megfelelő lejátszóeszköz
+   van-e bejelölve.
+2. Ellenőrizd, hogy ugyanaz az eszköz a Windows alapértelmezett hangkimenete.
+3. Indítsd újra a számítógépet.
+4. Indítsd el újra az idkbroo Boostert, és nyomd meg az ALKALMAZÁS gombot.
+
