@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.6.0'
+$script:appVersion = '1.0.0'
 $script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.6" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -184,7 +184,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.6" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -228,7 +228,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.6.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.0.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -820,54 +820,16 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
-V5.6.0 – PUBLIKÁLÁSI FRISSÍTÉS
-• Új, modern Névjegy ablak alkalmazásleírással és készítői adatokkal.
-• Közvetlenül megnyitható Discord-szerver: discord.gg/6qmgcxuu6c.
-• Szerzői jogi, Equalizer APO- és hallásvédelmi tájékoztatás.
-
-V5.5.0 – ÚJ MEGJELENÉS
-• Az alsó kezelőrész modernebb, rendezett kártyás elrendezést kapott.
-• A profilkezelés és a rendszereszközök külön csoportba kerültek.
-• A Diagnosztika egységes rendszereszköz lett, a Kikapcsolás pedig külön hangfeldolgozási sávba került.
-• Finomabb gombkeretek, térközök és modernebb vezérlőstílusok.
-
-V5.4.3 – HIBAJAVÍTÁS
-• A diagnosztikai jelentés másolása már nem omlasztja össze az alkalmazást, ha a Windows vágólapja foglalt.
-• A másolás automatikusan többször újrapróbálkozik, sikertelenség esetén pedig érthető üzenetet ad.
-
-V5.4.2 – HIBAJAVÍTÁS
-• A diagnosztika most már helyesen felismeri a számozott Equalizer APO-szűrőket.
-• Megszűnt a működő booster konfigurációra adott téves „hiányos” figyelmeztetés.
-
-V5.4.1 – HIBAJAVÍTÁS
-• Javítva a Változások ablak megnyitási hibája.
-• Javítva a Hangeszközök gomb indítási hibája.
-• Az első indítási varázsló befejezése most már biztosan megmarad.
-
-V5.4.0 – FRISSÍTÉSI ELŐZMÉNYEK
-• Új Változások ablak, amely verziónként megmutatja az újdonságokat.
-• Az előzmények internetkapcsolat nélkül is elérhetők.
-
-V5.3.0
-• Első indítási, háromlépéses beállítási varázsló.
-• Equalizer APO, rendszergazdai jogosultság és aktív hangkimenet ellenőrzése.
-• Automatikus és kézi GitHub-frissítésellenőrzés.
-
-V5.2.0
-• Beépített diagnosztika és menthető hibajelentés.
-• Telepített verzió kijelzése.
-• Javított hangeszközválasztó-indítás.
-
-V5.1.0
-• Black & Red, Black & Blue és Graphite & Green témák.
-• Olvashatóbb témaválasztó.
-
-V5.0.0
-• Modern felület és valódi Windows-alkalmazás.
+V1.0.0 – ELSŐ NYILVÁNOS KIADÁS
+• Modern, témázható Windows-felület.
 • 0–300%-os hangerő-erősítés.
 • Zene, FiveM, R6, Discord és Film profilok.
 • Tízsávos equalizer, basszuskiemelés és torzításvédelem.
 • Saját profil mentése, betöltése, importálása és exportálása.
+• Automatikus profilváltás és globális gyorsbillentyűk.
+• Első indítási varázsló és beépített diagnosztika.
+• Automatikus frissítésellenőrzés és frissítési előzmények.
+• Névjegy, közvetlen Discord-kapcsolat és részletes telepítési útmutató.
 "@
     $dialog = [Windows.Window]::new()
     $dialog.Title = "idkbroo Booster $script:appVersion – Frissítési előzmények"
@@ -1094,7 +1056,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.6'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V1.0'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
