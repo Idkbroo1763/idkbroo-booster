@@ -1,9 +1,9 @@
-# Tudom, hogy meleg vagy V4
+# SoundLift V1.0
 
-Modern dashboard felület bal oldali profilmenüvel, külön vezérlőkártyákkal,
-egységes lila–sötét dizájnnal és átláthatóbb állapotjelzésekkel.
+Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
+equalizerrel és akár 300%-os hangerő-erősítéssel.
 
-Az egyedi `idkbroo Booster.ico` ikon az ablakban, a tálcán és a Windowszal
+Az egyedi SoundLift ikon az ablakban, a tálcán és a Windowszal
 induló parancsikonon is megjelenik.
 
 Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
@@ -45,7 +45,7 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 
 ## Indítás
 
-Olvasd el a `TELEPITES.txt` fájlt, majd kattints duplán a `TudomHogyMelegVagy.bat` fájlra.
+Olvasd el a `TELEPÍTÉS.txt` fájlt, majd indítsd el a `SoundLift Setup.exe` telepítőt.
 
 ## Megjegyzés
 
