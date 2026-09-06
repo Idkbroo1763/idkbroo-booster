@@ -14,7 +14,7 @@ Import-Module ps2exe
 
 # A minimális, dokumentált paraméterkészletet használjuk. Ez elkerüli, hogy a
 # GitHub runner PowerShell-verziója a metaadat-kapcsolókat LCID-ként értelmezze.
-Invoke-PS2EXE $sourceScript $outputExe -IconFile $iconFile -NoConsole -RequireAdmin -STA
+Invoke-PS2EXE $sourceScript $outputExe -IconFile $iconFile -NoConsole -RequireAdmin -STA -Verbose
 
 if (-not (Test-Path $outputExe)) { throw 'Az EXE fordítása nem sikerült.' }
 Copy-Item -LiteralPath $iconFile -Destination (Join-Path $outputDirectory 'idkbroo Booster.ico') -Force
