@@ -559,11 +559,11 @@ $ApplyButton.Add_Click({
 
         $includeLine = 'Include: TudomHogyMelegVagy.txt'
         $mainText = if (Test-Path $mainConfig) { Read-TextWithRetry $mainConfig } else { '' }
-        # Remove the include line used by older versions so effects never stack.
-        $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*BassForge\.txt\s*\r?\n?', '')
-        if ($mainText -notmatch '(?im)^\s*Include:\s*TudomHogyMelegVagy\.txt\s*$') {
-            $mainText += "`r`n# SoundLift`r`n$includeLine`r`n"
-        }
+        # Remove every legacy marker and duplicate include, then add one clean
+        # SoundLift block. This also repairs config files made by older builds.
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*(?:BassForge|TudomHogyMelegVagy)\.txt\s*\r?\n?', '')
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*#\s*(?:BassForge|Tudom,\s*hogy\s*meleg\s*vagy|SoundLift)\s*\r?\n?', '')
+        $mainText = $mainText.TrimEnd() + "`r`n`r`n# SoundLift`r`n$includeLine`r`n"
         Write-TextWithRetry $mainConfig $mainText
         $StatusText.Text = "OK - Beállítás alkalmazva: $([int]$volumePercent)% / $([int]$bassDb) dB"
         $StatusBorder.Background = '#143126'
@@ -913,7 +913,9 @@ $BypassButton.Add_Click({
         $main = Join-Path $apo 'config.txt'
         if (Test-Path $main) {
             $text = [IO.File]::ReadAllText($main)
-            $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*TudomHogyMelegVagy\.txt\s*\r?\n?', '')
+            $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*(?:BassForge|TudomHogyMelegVagy)\.txt\s*\r?\n?', '')
+            $text = [Regex]::Replace($text, '(?im)^\s*#\s*(?:BassForge|Tudom,\s*hogy\s*meleg\s*vagy|SoundLift)\s*\r?\n?', '')
+            $text = $text.TrimEnd() + "`r`n"
             Write-TextWithRetry $main $text
             $StatusText.Text = 'KIKAPCSOLVA - Nyomj Alkalmazást a visszakapcsoláshoz'; $StatusBorder.Background = '#4A1F2D'
         }
