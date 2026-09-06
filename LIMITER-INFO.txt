@@ -1,0 +1,14 @@
+VALODI LIMITER / KOMPRESSZOR
+============================
+
+Az Equalizer APO beepitett Loudness Correction szuroje nem kompresszor es nem
+limiter. Emiatt egy sima pozitiv digitalis erositesnel a 0 dB fole kerulo
+hangcsucsok torzithatnak.
+
+Az alkalmazas sajat headroom-vedelme ezt EQ es eloerosites csokkentessel elozi
+meg. Valodi kompresszios hangositas kulso VST kompresszort vagy limitert
+igenyelne. Ilyen plugint a csomag licenc-, kompatibilitasi es biztonsagi okbol
+nem telepit automatikusan.
+
+Ha kesobb VST limitert telepitesz, a vedelmet csak akkor kapcsold ki, ha a
+limiter bizonyithatoan az Equalizer APO lanc legvegen mukodik.
