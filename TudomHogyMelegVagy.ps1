@@ -15,7 +15,8 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.2.0'
+$script:appVersion = '5.3.0'
+$script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -91,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.3" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -178,7 +179,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -222,7 +223,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.3.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
@@ -301,6 +302,7 @@ $xaml = @'
                 <Button Name="TestButton" Content="60 Hz teszt" Style="{StaticResource UtilityButton}"/>
                 <Button Name="DeviceButton" Content="Hangeszközök" Style="{StaticResource UtilityButton}"/>
                 <Button Name="DiagnosticsButton" Content="Diagnosztika" Style="{StaticResource UtilityButton}" Background="#4A1F2D"/>
+                <Button Name="UpdateButton" Content="Frissítések" Style="{StaticResource UtilityButton}"/>
               </WrapPanel>
             </StackPanel>
           </Border>
@@ -317,7 +319,7 @@ $appIconPath = Join-Path $script:appDirectory 'idkbroo Booster.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','ActiveProfileText','ThemeCombo','VersionText')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','ActiveProfileText','ThemeCombo','VersionText')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 
@@ -548,7 +550,8 @@ function Invoke-ApplyButton {
 
 function Get-AppState {
     return [PSCustomObject]@{
-        version = 4; profile = $script:activeProfile; theme = $script:themeName
+        version = 5; profile = $script:activeProfile; theme = $script:themeName
+        onboardingCompleted = [bool]$script:onboardingCompleted
         volume = [int]$VolumeSlider.Value; bass = [int]$BassSlider.Value; frequency = [int]$FrequencySlider.Value
         safety = [bool]$SafetyCheck.IsChecked; autoProfile = [bool]$AutoProfileCheck.IsChecked; instant = [bool]$InstantCheck.IsChecked
         eq = @($script:eqSliders | ForEach-Object { [int]$_.Value })
@@ -566,6 +569,7 @@ function Set-AppState($state) {
         $ThemeCombo.SelectedItem = [string]$state.theme
         Set-AppTheme ([string]$state.theme)
     }
+    if ($null -ne $state.onboardingCompleted) { $script:onboardingCompleted = [bool]$state.onboardingCompleted }
 }
 
 $appDataDirectory = Join-Path $env:APPDATA 'TudomHogyMelegVagy'
@@ -712,6 +716,60 @@ function Show-DiagnosticsWindow {
 }
 
 $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
+
+function Check-AppUpdate {
+    param([switch]$Silent)
+    try {
+        $headers = @{ 'User-Agent' = 'idkbroo-Booster'; 'Accept' = 'application/vnd.github+json' }
+        $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/benesicsbeni-debug/idkbroo-booster/releases/latest' -Headers $headers -TimeoutSec 8
+        $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
+        $currentVersion = [version]$script:appVersion
+        if ($latestVersion -gt $currentVersion) {
+            $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'idkbroo Booster – Frissítés', 'YesNo', 'Information')
+            if ($answer -eq 'Yes') { Start-Process ([string]$release.html_url) }
+        } elseif (-not $Silent) {
+            [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'idkbroo Booster – Frissítés', 'OK', 'Information') | Out-Null
+        }
+    } catch {
+        if (-not $Silent) {
+            [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`nEllenőrizd az internetkapcsolatot, vagy próbáld újra később.`n`n$($_.Exception.Message)", 'idkbroo Booster – Frissítés', 'OK', 'Warning') | Out-Null
+        }
+    }
+}
+$UpdateButton.Add_Click({ Check-AppUpdate })
+
+function Show-FirstRunWizard {
+    $wizard = [Windows.Window]::new()
+    $wizard.Title = 'idkbroo Booster – Első indítás'; $wizard.Width = 650; $wizard.Height = 470
+    $wizard.ResizeMode = 'NoResize'; $wizard.WindowStartupLocation = 'CenterOwner'; $wizard.Owner = $window
+    $wizard.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#09090B'))
+    $root = [Windows.Controls.Grid]::new(); $root.Margin = [Windows.Thickness]::new(28)
+    $root.RowDefinitions.Add([Windows.Controls.RowDefinition]::new())
+    $navRow = [Windows.Controls.RowDefinition]::new(); $navRow.Height = [Windows.GridLength]::Auto; $root.RowDefinitions.Add($navRow)
+    $content = [Windows.Controls.StackPanel]::new()
+    $stepText = [Windows.Controls.TextBlock]::new(); $stepText.Foreground = [Windows.Media.Brushes]::Gray; $stepText.FontSize = 12
+    $titleText = [Windows.Controls.TextBlock]::new(); $titleText.Foreground = [Windows.Media.Brushes]::White; $titleText.FontSize = 26; $titleText.FontWeight = 'Bold'; $titleText.Margin = [Windows.Thickness]::new(0,10,0,16)
+    $bodyText = [Windows.Controls.TextBlock]::new(); $bodyText.Foreground = [Windows.Media.Brushes]::LightGray; $bodyText.FontSize = 15; $bodyText.LineHeight = 25; $bodyText.TextWrapping = 'Wrap'
+    $content.Children.Add($stepText) | Out-Null; $content.Children.Add($titleText) | Out-Null; $content.Children.Add($bodyText) | Out-Null
+    [Windows.Controls.Grid]::SetRow($content, 0); $root.Children.Add($content) | Out-Null
+    $nav = [Windows.Controls.StackPanel]::new(); $nav.Orientation = 'Horizontal'; $nav.HorizontalAlignment = 'Right'; $nav.Margin = [Windows.Thickness]::new(0,20,0,0)
+    $back = [Windows.Controls.Button]::new(); $back.Content = 'Vissza'; $back.Width = 105; $back.Height = 38; $back.Margin = [Windows.Thickness]::new(0,0,10,0)
+    $next = [Windows.Controls.Button]::new(); $next.Content = 'Tovább'; $next.Width = 125; $next.Height = 38
+    $nav.Children.Add($back) | Out-Null; $nav.Children.Add($next) | Out-Null; [Windows.Controls.Grid]::SetRow($nav, 1); $root.Children.Add($nav) | Out-Null
+    $apo = Get-ApoConfigDirectory; $output = [AudioAppNative]::GetDefaultOutputName()
+    $adminState = if (Test-Administrator) { 'Rendben' } else { 'Nincs rendszergazdai jogosultság' }
+    $apoState = if ($apo) { 'Telepítve' } else { 'Nem található' }
+    $pages = @(
+        @{ Title='Üdv az idkbroo Boosterben!'; Body="Ez a rövid beállítás segít, hogy a hangerő- és EQ-profilok valóban a megfelelő hangeszközön működjenek.`n`nA program az Equalizer APO-ra épül, ezért annak telepítve kell lennie." },
+        @{ Title='Gyors rendszerellenőrzés'; Body="Equalizer APO: $apoState`nRendszergazdai futtatás: $adminState`nAktív hangkimenet: $output`n`nHa az APO nem található, telepítsd az Equalizer APO-t, majd indítsd újra ezt a programot." },
+        @{ Title='Már majdnem kész'; Body="1. Nyisd meg a Hangeszközök menüt.`n2. Pipáld ki az aktív lejátszóeszközt.`n3. Indítsd újra a Windowst, ha az APO ezt kéri.`n4. Válassz egy profilt, majd nyomd meg az ALKALMAZÁS gombot.`n`nA Diagnosztika gomb később segít a hibakeresésben." }
+    )
+    $wizardState = @{ Page = 0 }
+    $refreshPage = { $page = [int]$wizardState.Page; $stepText.Text = "ELSŐ INDÍTÁS  •  $($page + 1) / $($pages.Count)"; $titleText.Text = $pages[$page].Title; $bodyText.Text = $pages[$page].Body; $back.IsEnabled = $page -gt 0; $next.Content = if ($page -eq $pages.Count - 1) { 'Befejezés' } else { 'Tovább' } }
+    $back.Add_Click({ if ($wizardState.Page -gt 0) { $wizardState.Page--; & $refreshPage } }.GetNewClosure())
+    $next.Add_Click({ if ($wizardState.Page -lt $pages.Count - 1) { $wizardState.Page++; & $refreshPage; return }; $script:onboardingCompleted = $true; try { (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding UTF8 } catch { }; $wizard.Close() }.GetNewClosure())
+    & $refreshPage; $wizard.Content = $root; $wizard.ShowDialog() | Out-Null
+}
 
 $SaveButton.Add_Click({
     (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $customProfilePath -Encoding UTF8
@@ -885,7 +943,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.2'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.3'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -924,4 +982,11 @@ $window.Add_Closed({
 })
 
 Update-Labels
+$script:startupUiHandled = $false
+$window.Add_ContentRendered({
+    if ($script:startupUiHandled) { return }
+    $script:startupUiHandled = $true
+    if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
+    Check-AppUpdate -Silent
+})
 $window.ShowDialog() | Out-Null
