@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.1.0'
+$script:appVersion = '5.2.0'
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -91,7 +91,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -178,7 +178,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -222,7 +222,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.1.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
@@ -300,6 +300,7 @@ $xaml = @'
                 <Button Name="BypassButton" Content="Kikapcsolás" Style="{StaticResource UtilityButton}" Background="#4A2331"/>
                 <Button Name="TestButton" Content="60 Hz teszt" Style="{StaticResource UtilityButton}"/>
                 <Button Name="DeviceButton" Content="Hangeszközök" Style="{StaticResource UtilityButton}"/>
+                <Button Name="DiagnosticsButton" Content="Diagnosztika" Style="{StaticResource UtilityButton}" Background="#4A1F2D"/>
               </WrapPanel>
             </StackPanel>
           </Border>
@@ -316,7 +317,7 @@ $appIconPath = Join-Path $script:appDirectory 'idkbroo Booster.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','ActiveProfileText','ThemeCombo','VersionText')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','ActiveProfileText','ThemeCombo','VersionText')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 
@@ -572,6 +573,146 @@ if (-not (Test-Path $appDataDirectory)) { [void][IO.Directory]::CreateDirectory(
 $settingsPath = Join-Path $appDataDirectory 'settings.json'
 $customProfilePath = Join-Path $appDataDirectory 'custom-profile.json'
 
+function Get-DiagnosticsReport {
+    $lines = New-Object Collections.Generic.List[string]
+    $errors = 0
+    $warnings = 0
+    $activeOutput = [AudioAppNative]::GetDefaultOutputName()
+    $apo = Get-ApoConfigDirectory
+
+    $lines.Add('IDKBROO BOOSTER – AUTOMATIKUS DIAGNOSZTIKA')
+    $lines.Add(('=' * 48))
+    $lines.Add("Időpont: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+    $lines.Add("Alkalmazásverzió: $script:appVersion")
+    $lines.Add("Windows: $([Environment]::OSVersion.VersionString)")
+    $lines.Add("Aktív hangkimenet: $activeOutput")
+    $lines.Add('')
+
+    if (Test-Administrator) {
+        $lines.Add('[OK] Rendszergazdai jogosultság aktív.')
+    } else {
+        $lines.Add('[HIBA] Az alkalmazás nem rendszergazdaként fut.')
+        $errors++
+    }
+
+    if ($apo) {
+        $lines.Add("[OK] Equalizer APO konfigurációs mappa: $apo")
+        $mainConfig = Join-Path $apo 'config.txt'
+        $boosterConfig = Join-Path $apo 'TudomHogyMelegVagy.txt'
+
+        if (Test-Path $mainConfig) {
+            $lines.Add('[OK] Az Equalizer APO config.txt fájlja megtalálható.')
+            try {
+                $mainText = [IO.File]::ReadAllText($mainConfig)
+                if ($mainText -match '(?im)^\s*Include:\s*TudomHogyMelegVagy\.txt\s*$') {
+                    $lines.Add('[OK] A booster Include sora aktív a config.txt fájlban.')
+                } else {
+                    $lines.Add('[HIBA] Hiányzik a booster Include sora a config.txt fájlból.')
+                    $errors++
+                }
+            } catch {
+                $lines.Add("[HIBA] A config.txt nem olvasható: $($_.Exception.Message)")
+                $errors++
+            }
+        } else {
+            $lines.Add('[HIBA] Az Equalizer APO config.txt fájlja hiányzik.')
+            $errors++
+        }
+
+        if (Test-Path $boosterConfig) {
+            try {
+                $boosterText = [IO.File]::ReadAllText($boosterConfig)
+                if ($boosterText -match '(?im)^\s*Preamp:' -and $boosterText -match '(?im)^\s*Filter:') {
+                    $lines.Add('[OK] A booster saját konfigurációja érvényesnek tűnik.')
+                } else {
+                    $lines.Add('[FIGYELEM] A booster konfigurációja hiányos. Nyomd meg az ALKALMAZÁS gombot.')
+                    $warnings++
+                }
+            } catch {
+                $lines.Add("[HIBA] A booster konfigurációja nem olvasható: $($_.Exception.Message)")
+                $errors++
+            }
+        } else {
+            $lines.Add('[FIGYELEM] A booster konfigurációja még nem létezik. Válassz profilt, majd alkalmazd.')
+            $warnings++
+        }
+    } else {
+        $lines.Add('[HIBA] Az Equalizer APO telepítése nem található.')
+        $errors++
+    }
+
+    $conflictProcesses = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.ProcessName -match 'JBL|Quantum|SteelSeries|Sonar|Nahimic|SonicStudio'
+    } | Select-Object -ExpandProperty ProcessName -Unique)
+    if ($conflictProcesses.Count -gt 0) {
+        $lines.Add("[FIGYELEM] Lehetséges gyártói hangprogram: $($conflictProcesses -join ', ')")
+        $lines.Add('           Ha nincs hangváltozás, ez ütközhet az Equalizer APO-val.')
+        $warnings++
+    } else {
+        $lines.Add('[OK] Nem látható ismert, ütközést okozó hangprogram-folyamat.')
+    }
+
+    $lines.Add('')
+    $lines.Add('FONTOS: azt, hogy az APO ténylegesen az aktív eszközre van-e telepítve,')
+    $lines.Add('a Device Selector Status oszlopában kell ellenőrizni.')
+    $lines.Add('')
+    if ($errors -eq 0 -and $warnings -eq 0) {
+        $lines.Add('EREDMÉNY: Nem található nyilvánvaló hiba.')
+    } elseif ($errors -eq 0) {
+        $lines.Add("EREDMÉNY: $warnings figyelmeztetés található.")
+    } else {
+        $lines.Add("EREDMÉNY: $errors hiba és $warnings figyelmeztetés található.")
+    }
+    return $lines -join [Environment]::NewLine
+}
+
+function Show-DiagnosticsWindow {
+    $report = Get-DiagnosticsReport
+    $dialog = [Windows.Window]::new()
+    $dialog.Title = "idkbroo Booster $script:appVersion – Diagnosztika"
+    $dialog.Width = 760; $dialog.Height = 590; $dialog.MinWidth = 620; $dialog.MinHeight = 440
+    $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window
+    $dialog.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#0B0B0D'))
+
+    $grid = [Windows.Controls.Grid]::new()
+    $grid.Margin = [Windows.Thickness]::new(18)
+    $grid.RowDefinitions.Add([Windows.Controls.RowDefinition]::new())
+    $buttonRow = [Windows.Controls.RowDefinition]::new(); $buttonRow.Height = [Windows.GridLength]::Auto
+    $grid.RowDefinitions.Add($buttonRow)
+
+    $reportBox = [Windows.Controls.TextBox]::new()
+    $reportBox.Text = $report; $reportBox.IsReadOnly = $true
+    $reportBox.AcceptsReturn = $true; $reportBox.TextWrapping = 'NoWrap'
+    $reportBox.VerticalScrollBarVisibility = 'Auto'; $reportBox.HorizontalScrollBarVisibility = 'Auto'
+    $reportBox.FontFamily = [Windows.Media.FontFamily]::new('Consolas'); $reportBox.FontSize = 13
+    $reportBox.Padding = [Windows.Thickness]::new(14)
+    $reportBox.Background = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#111113'))
+    $reportBox.Foreground = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString('#F8FAFC'))
+    $reportBox.BorderBrush = $window.Resources['AccentTextBrush']
+    [Windows.Controls.Grid]::SetRow($reportBox, 0); $grid.Children.Add($reportBox) | Out-Null
+
+    $buttons = [Windows.Controls.StackPanel]::new()
+    $buttons.Orientation = 'Horizontal'; $buttons.HorizontalAlignment = 'Right'
+    $buttons.Margin = [Windows.Thickness]::new(0, 12, 0, 0)
+    $copyButton = [Windows.Controls.Button]::new(); $copyButton.Content = 'Jelentés másolása'; $copyButton.Margin = [Windows.Thickness]::new(0,0,8,0)
+    $saveButton = [Windows.Controls.Button]::new(); $saveButton.Content = 'Mentés TXT-be'; $saveButton.Margin = [Windows.Thickness]::new(0,0,8,0)
+    $closeButton = [Windows.Controls.Button]::new(); $closeButton.Content = 'Bezárás'
+    $copyButton.Add_Click({ [Windows.Clipboard]::SetText($report); $StatusText.Text = 'OK - Diagnosztikai jelentés a vágólapra másolva' }.GetNewClosure())
+    $saveButton.Add_Click({
+        $saveDialog = [Microsoft.Win32.SaveFileDialog]::new()
+        $saveDialog.Filter = 'Szövegfájl (*.txt)|*.txt'
+        $saveDialog.FileName = "idkbroo-diagnosztika-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
+        if ($saveDialog.ShowDialog()) { [IO.File]::WriteAllText($saveDialog.FileName, $report, [Text.Encoding]::UTF8) }
+    }.GetNewClosure())
+    $closeButton.Add_Click({ $dialog.Close() }.GetNewClosure())
+    $buttons.Children.Add($copyButton) | Out-Null; $buttons.Children.Add($saveButton) | Out-Null; $buttons.Children.Add($closeButton) | Out-Null
+    [Windows.Controls.Grid]::SetRow($buttons, 1); $grid.Children.Add($buttons) | Out-Null
+    $dialog.Content = $grid
+    $dialog.ShowDialog() | Out-Null
+}
+
+$DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
+
 $SaveButton.Add_Click({
     (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $customProfilePath -Encoding UTF8
     $StatusText.Text = 'OK - Saját profil elmentve'
@@ -744,7 +885,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.1'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.2'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
