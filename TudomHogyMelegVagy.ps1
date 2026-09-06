@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.4.2'
+$script:appVersion = '5.4.3'
 $script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.4.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.4.3" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -179,7 +179,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.4.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.4.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -223,7 +223,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.4.2" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.4.3" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
@@ -703,7 +703,22 @@ function Show-DiagnosticsWindow {
     $copyButton = [Windows.Controls.Button]::new(); $copyButton.Content = 'Jelentés másolása'; $copyButton.Margin = [Windows.Thickness]::new(0,0,8,0)
     $saveButton = [Windows.Controls.Button]::new(); $saveButton.Content = 'Mentés TXT-be'; $saveButton.Margin = [Windows.Thickness]::new(0,0,8,0)
     $closeButton = [Windows.Controls.Button]::new(); $closeButton.Content = 'Bezárás'
-    $copyButton.Add_Click({ [Windows.Clipboard]::SetText($report); $StatusText.Text = 'OK - Diagnosztikai jelentés a vágólapra másolva' }.GetNewClosure())
+    $copyButton.Add_Click({
+        $copied = $false
+        for ($attempt = 1; $attempt -le 10 -and -not $copied; $attempt++) {
+            try {
+                [Windows.Forms.Clipboard]::SetText($report)
+                $copied = $true
+            } catch {
+                if ($attempt -lt 10) { Start-Sleep -Milliseconds 120 }
+            }
+        }
+        if ($copied) {
+            $StatusText.Text = 'OK - Diagnosztikai jelentés a vágólapra másolva'
+        } else {
+            [System.Windows.MessageBox]::Show('A Windows vágólapja jelenleg foglalt. Zárd be a vágólapot használó programot, majd próbáld újra.', 'Másolási hiba', 'OK', 'Warning') | Out-Null
+        }
+    }.GetNewClosure())
     $saveButton.Add_Click({
         $saveDialog = [Microsoft.Win32.SaveFileDialog]::new()
         $saveDialog.Filter = 'Szövegfájl (*.txt)|*.txt'
@@ -741,6 +756,10 @@ $UpdateButton.Add_Click({ Check-AppUpdate })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V5.4.3 – HIBAJAVÍTÁS
+• A diagnosztikai jelentés másolása már nem omlasztja össze az alkalmazást, ha a Windows vágólapja foglalt.
+• A másolás automatikusan többször újrapróbálkozik, sikertelenség esetén pedig érthető üzenetet ad.
+
 V5.4.2 – HIBAJAVÍTÁS
 • A diagnosztika most már helyesen felismeri a számozott Equalizer APO-szűrőket.
 • Megszűnt a működő booster konfigurációra adott téves „hiányos” figyelmeztetés.
@@ -1000,7 +1019,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.4.2'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.4.3'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
