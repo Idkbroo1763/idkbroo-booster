@@ -90,9 +90,10 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V4" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#080A10" Foreground="#F8FAFC"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
   <Window.Resources>
     <LinearGradientBrush x:Key="PageGradient" StartPoint="0,0" EndPoint="1,1">
       <GradientStop Color="#090B12" Offset="0"/><GradientStop Color="#11102A" Offset="0.55"/><GradientStop Color="#090B12" Offset="1"/>
@@ -655,7 +656,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V4'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -676,7 +677,13 @@ $exitItem = $trayMenu.Items.Add('Kilépés')
 $exitItem.Add_Click({ $script:reallyExit = $true; $window.Close() })
 $script:trayIcon.ContextMenuStrip = $trayMenu
 $script:trayIcon.Add_DoubleClick({ $window.Show(); $window.WindowState = 'Normal'; $window.Activate() })
-$window.Add_StateChanged({ if ($window.WindowState -eq 'Minimized') { $window.Hide(); $script:trayIcon.ShowBalloonTip(1200, 'Tálcán fut', 'Az app továbbra is aktív.', [Windows.Forms.ToolTipIcon]::Info) } })
+# A minimalizálás normál Windows-módon működik: az app látható marad a tálcán.
+# Csak az X gomb rejti a tálcaikon mellé, ahonnan dupla kattintással visszahozható.
+$window.Add_StateChanged({
+    if ($window.WindowState -eq 'Minimized') {
+        $window.ShowInTaskbar = $true
+    }
+})
 $window.Add_Closing({
     param($sender, $eventArgs)
     if (-not $script:reallyExit) { $eventArgs.Cancel = $true; $window.Hide() }
