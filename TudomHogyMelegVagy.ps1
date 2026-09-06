@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '5.4.3'
+$script:appVersion = '5.5.0'
 $script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5.4.3" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.5" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -116,7 +116,7 @@ $xaml = @'
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
               <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
@@ -134,8 +134,13 @@ $xaml = @'
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
     <Style x:Key="UtilityButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Padding" Value="12,8"/><Setter Property="Margin" Value="0,0,7,7"/>
+      <Setter Property="Background" Value="#17171B"/><Setter Property="BorderBrush" Value="#2B2B31"/><Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="13,9"/><Setter Property="Margin" Value="0,0,8,8"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource UtilityButton}">
+      <Setter Property="Foreground" Value="#FF7A8A"/><Setter Property="Background" Value="#241014"/>
+      <Setter Property="BorderBrush" Value="#5A2029"/><Setter Property="Padding" Value="16,10"/>
     </Style>
     <Style TargetType="CheckBox">
       <Setter Property="Foreground" Value="#CBD5E1"/><Setter Property="FontSize" Value="13"/>
@@ -179,7 +184,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.4.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.5" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -223,7 +228,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 5.4.3" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.5.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
@@ -289,23 +294,47 @@ $xaml = @'
             </StackPanel>
           </Border>
 
-          <Border Background="#111113" CornerRadius="18" Padding="18,14" BorderBrush="#29292E" BorderThickness="1">
-            <StackPanel>
-              <TextBlock Text="E S Z K Ö Z Ö K   É S   P R O F I L K E Z E L É S" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,10"/>
-              <WrapPanel>
-                <Button Name="SaveButton" Content="Saját mentés" Style="{StaticResource UtilityButton}"/>
-                <Button Name="LoadButton" Content="Saját betöltés" Style="{StaticResource UtilityButton}"/>
-                <Button Name="ExportButton" Content="Export" Style="{StaticResource UtilityButton}"/>
-                <Button Name="ImportButton" Content="Import" Style="{StaticResource UtilityButton}"/>
-                <Button Name="UndoButton" Content="Visszavonás" Style="{StaticResource UtilityButton}"/>
-                <Button Name="BypassButton" Content="Kikapcsolás" Style="{StaticResource UtilityButton}" Background="#4A2331"/>
-                <Button Name="TestButton" Content="60 Hz teszt" Style="{StaticResource UtilityButton}"/>
-                <Button Name="DeviceButton" Content="Hangeszközök" Style="{StaticResource UtilityButton}"/>
-                <Button Name="DiagnosticsButton" Content="Diagnosztika" Style="{StaticResource UtilityButton}" Background="#4A1F2D"/>
-                <Button Name="UpdateButton" Content="Frissítések" Style="{StaticResource UtilityButton}"/>
-                <Button Name="ChangelogButton" Content="Változások" Style="{StaticResource UtilityButton}"/>
-              </WrapPanel>
-            </StackPanel>
+          <Border Background="#111113" CornerRadius="18" Padding="20,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
+            <Grid>
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <TextBlock Text="B E Á L L Í T Á S O K   É S   E S Z K Ö Z Ö K" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="2,0,0,12"/>
+              <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
+                <Border Background="#0B0B0D" CornerRadius="13" Padding="14,12" BorderBrush="#242429" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="PROFILKEZELÉS" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
+                    <WrapPanel>
+                      <Button Name="SaveButton" Content="＋  Saját mentés" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="LoadButton" Content="↗  Saját betöltés" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ExportButton" Content="Export" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ImportButton" Content="Import" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="UndoButton" Content="↶  Visszavonás" Style="{StaticResource UtilityButton}"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Background="#0B0B0D" CornerRadius="13" Padding="14,12" BorderBrush="#242429" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="RENDSZERESZKÖZÖK" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
+                    <WrapPanel>
+                      <Button Name="TestButton" Content="◉  60 Hz teszt" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="DeviceButton" Content="▣  Hangeszközök" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="DiagnosticsButton" Content="✓  Diagnosztika" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="UpdateButton" Content="↻  Frissítések" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ChangelogButton" Content="≡  Változások" Style="{StaticResource UtilityButton}"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+              </Grid>
+              <Border Grid.Row="2" Background="#150B0D" CornerRadius="12" Padding="14,10" BorderBrush="#352026" BorderThickness="1" Margin="0,12,0,0">
+                <DockPanel>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="HANGFELDOLGOZÁS" Foreground="#A66B74" FontSize="10" FontWeight="Bold"/>
+                    <TextBlock Text="Az Equalizer APO eredeti hangjára vált vissza." Foreground="#6F7888" FontSize="11" Margin="0,3,0,0"/>
+                  </StackPanel>
+                  <Button Name="BypassButton" Content="⏻  Hanghatások kikapcsolása" Style="{StaticResource DangerButton}" HorizontalAlignment="Right" Margin="16,0,0,0"/>
+                </DockPanel>
+              </Border>
+            </Grid>
           </Border>
         </StackPanel>
       </ScrollViewer>
@@ -756,6 +785,12 @@ $UpdateButton.Add_Click({ Check-AppUpdate })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V5.5.0 – ÚJ MEGJELENÉS
+• Az alsó kezelőrész modernebb, rendezett kártyás elrendezést kapott.
+• A profilkezelés és a rendszereszközök külön csoportba kerültek.
+• A Diagnosztika egységes rendszereszköz lett, a Kikapcsolás pedig külön hangfeldolgozási sávba került.
+• Finomabb gombkeretek, térközök és modernebb vezérlőstílusok.
+
 V5.4.3 – HIBAJAVÍTÁS
 • A diagnosztikai jelentés másolása már nem omlasztja össze az alkalmazást, ha a Windows vágólapja foglalt.
 • A másolás automatikusan többször újrapróbálkozik, sikertelenség esetén pedig érthető üzenetet ad.
@@ -1019,7 +1054,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.4.3'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.5'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
