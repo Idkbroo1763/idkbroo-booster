@@ -1,0 +1,54 @@
+# Tudom, hogy meleg vagy V4
+
+Modern dashboard felület bal oldali profilmenüvel, külön vezérlőkártyákkal,
+egységes lila–sötét dizájnnal és átláthatóbb állapotjelzésekkel.
+
+Az egyedi `idkbroo Booster.ico` ikon az ablakban, a tálcán és a Windowszal
+induló parancsikonon is megjelenik.
+
+Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
+
+## Funkciók
+
+- 0–300% hangerőszabályzás, valódi 0%-os némítással
+- 0–24 dB, többsávos Bass Boost
+- 40–160 Hz között állítható középfrekvencia
+- automatikus headroom-alapú torzításvédelem
+- uj, 160%-os Zene profil kontrollalt basszussal es V-alaku zenei EQ-val
+- FiveM-re hangolt Játék profil tisztább beszéddel és részletekkel
+- Discord- és Film-profil
+- 10 sávos, -12 és +12 dB között állítható equalizer
+- FiveM, Spotify és Discord automatikus profilfelismerés
+- opcionális azonnali alkalmazás
+- torzításveszély-jelző és automatikus headroom-védelem
+- hangosabb, használatra kész gyári presetek kiegyensúlyozott headroom-védelemmel
+- opcionális automatikus indulás a Windowszal
+- az eredeti Equalizer APO-konfiguráció egyszeri biztonsági mentése
+- automatikus rendszergazdai indítás egyetlen Windows-engedélykéréssel
+- leválasztott, rejtett PowerShell-folyamat: a parancssor bezárása nem állítja le az appot
+- R6, FiveM RP és FiveM harc profil
+- kiegyensúlyozott játékprofilok: testes hangzás, enyhén kiemelt lépések és részletek
+- sajat profil mentese es betoltese
+- JSON profil importalas es exportalas
+- elozo alkalmazott hang visszavonasa
+- teljes effekt-kikapcsolas egy gombbal
+- beepitett 60 Hz-es basszusteszt
+- Equalizer APO eszkozvalaszto gyorsgomb
+- minden beallitas automatikus megjegyzese
+- globális Ctrl+Alt+1..6 profil-gyorsbillentyűk, játék közben is
+- tálcaikon profilváltó menüvel és automatikus értesítésekkel
+- a Windows aktuális alapértelmezett hangkimenetének kijelzése
+- tisztább Brutál basszus profil újrahangolt headroom-védelemmel
+- külön sub-bass, fő basszus és ütős 115 Hz-es basszusszűrő
+- 25 Hz-es high-pass szűrő a felesleges mélyrezgések csökkentésére
+- elkülönített konfiguráció, amely nem törli a meglévő Equalizer APO-beállításokat
+
+## Indítás
+
+Olvasd el a `TELEPITES.txt` fájlt, majd kattints duplán a `TudomHogyMelegVagy.bat` fájlra.
+
+## Megjegyzés
+
+A 200% nem a Windows csúszkáját viszi 100 fölé: körülbelül +6 dB digitális
+előerősítést alkalmaz. Nagy basszuskiemeléssel együtt ez torzítást okozhat, ezért
+az app alapból kompenzáló headroomot állít be.
