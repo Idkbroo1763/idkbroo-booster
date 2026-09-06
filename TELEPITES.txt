@@ -1,0 +1,37 @@
+TUDOM, HOGY MELEG VAGY – TELEPÍTÉS WINDOWS 10/11-RE
+======================================
+
+1. Töltsd le és telepítsd az Equalizer APO-t a hivatalos oldalról:
+   https://sourceforge.net/projects/equalizerapo/
+
+2. A Configurator ablakban pipáld ki azt a hangkimenetet, amelyet használsz
+   (például a fejhallgatódat vagy hangszóródat).
+
+3. Indítsd újra a számítógépet. Ez fontos, különben a hangeffekt nem működik.
+
+4. Csomagold ki a ZIP-et, majd indítsd el a TudomHogyMelegVagy.bat fájlt.
+   Az indító automatikusan rendszergazdai jogosultságot kér. A Windows
+   kérdésénél nyomj az Igen gombra; ezután az appot már nem kell újraindítani.
+
+5. Állítsd be a hangerőt és a basszust, majd nyomd meg az ALKALMAZÁS gombot.
+   A változás általában azonnal hallható.
+
+FONTOS
+------
+- Először alacsony Windows-hangerőn próbáld ki.
+- A 100% feletti digitális erősítés torzíthat és halláskárosodást okozhat.
+- A 200% feletti hangerőt és a 15 dB feletti basszust fokozatosan emeld.
+- A Torzításvédelem kapcsolót ajánlott bekapcsolva hagyni.
+- Ha nincs változás, futtasd az Equalizer APO Configurator programját, válaszd ki
+  a megfelelő eszközt, majd indítsd újra a gépet.
+- Bluetooth eszköznél a „Stereo” kimenetet válaszd, ne a „Hands-Free” módot.
+
+ELTÁVOLÍTÁS / KIKAPCSOLÁS
+------------------------
+Nyisd meg ezt a fájlt rendszergazdaként:
+C:\Program Files\EqualizerAPO\config\config.txt
+
+Töröld belőle ezt a sort:
+Include: TudomHogyMelegVagy.txt
+
+Ezután az alkalmazás már nem módosítja a hangot.
