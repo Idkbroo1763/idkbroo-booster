@@ -1,9 +1,9 @@
-IDKBROO BOOSTER – TELEPÍTÉSI ÚTMUTATÓ
+SOUNDLIFT – TELEPÍTÉSI ÚTMUTATÓ
 ======================================
 
 FONTOS
 ------
-Az idkbroo Booster az Equalizer APO hangfeldolgozóját vezérli.
+A SoundLift az Equalizer APO hangfeldolgozóját vezérli.
 Az alkalmazás önmagában nem tudja módosítani a rendszer hangját, ezért először
 az Equalizer APO-t kell telepíteni.
 
@@ -28,15 +28,15 @@ A telepítés végén megnyílik a Configurator / Device Selector.
 Az Equalizer APO telepítése után indítsd újra a számítógépet. Enélkül a booster
 nem biztos, hogy működni fog.
 
-4. IDKBROO BOOSTER TELEPÍTÉSE
+4. SOUNDLIFT TELEPÍTÉSE
 -----------------------------
-Indítsd el az „idkbroo Booster Setup.exe” fájlt, és végezd el a telepítést.
+Indítsd el a „SoundLift Setup.exe” fájlt, és végezd el a telepítést.
 A Windows rendszergazdai engedélyt kérhet, mert az alkalmazás a rendszerszintű
 hangbeállítást módosítja.
 
 5. ELSŐ HASZNÁLAT
 -----------------
-- Indítsd el az idkbroo Boostert.
+- Indítsd el a SoundLiftet.
 - Válassz egy profilt, például Zene, FiveM RP vagy R6.
 - Nyomd meg az ALKALMAZÁS gombot.
 - Először közepes hangerőn próbáld ki.
@@ -52,12 +52,12 @@ HA NINCS HANGVÁLTOZÁS
    van-e bejelölve.
 2. Ellenőrizd, hogy ugyanaz az eszköz a Windows alapértelmezett hangkimenete.
 3. Indítsd újra a számítógépet.
-4. Indítsd el újra az idkbroo Boostert, és nyomd meg az ALKALMAZÁS gombot.
+4. Indítsd el újra a SoundLiftet, és nyomd meg az ALKALMAZÁS gombot.
 
 SEGÍTSÉG ÉS KÖZÖSSÉG
 --------------------
 Ha segítségre van szükséged, hibát találtál, vagy új profilokat és frissítéseket
-szeretnél, csatlakozz az idkbroo Booster Discord-szerveréhez:
+szeretnél, csatlakozz a SoundLift Discord-szerveréhez:
 
 https://discord.gg/6qmgcxuu6c
 
@@ -67,5 +67,5 @@ Discord-felhasználónév: idkbroo_6
 SZERZŐI JOG
 ------------
 © 2026 idkbroo. Minden jog fenntartva.
-Az idkbroo Booster független projekt. Az Equalizer APO neve és jogai a saját
+A SoundLift független projekt. Az Equalizer APO neve és jogai a saját
 tulajdonosait illetik. A túl magas hangerő halláskárosodást okozhat.
