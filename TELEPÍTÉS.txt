@@ -54,3 +54,18 @@ HA NINCS HANGVÁLTOZÁS
 3. Indítsd újra a számítógépet.
 4. Indítsd el újra az idkbroo Boostert, és nyomd meg az ALKALMAZÁS gombot.
 
+SEGÍTSÉG ÉS KÖZÖSSÉG
+--------------------
+Ha segítségre van szükséged, hibát találtál, vagy új profilokat és frissítéseket
+szeretnél, csatlakozz az idkbroo Booster Discord-szerveréhez:
+
+https://discord.gg/6qmgcxuu6c
+
+Készítő: ɪᴅᴋʙʀᴏᴏ
+Discord-felhasználónév: idkbroo_6
+
+SZERZŐI JOG
+------------
+© 2026 idkbroo. Minden jog fenntartva.
+Az idkbroo Booster független projekt. Az Equalizer APO neve és jogai a saját
+tulajdonosait illetik. A túl magas hangerő halláskárosodást okozhat.
