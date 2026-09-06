@@ -15,6 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
+$script:appVersion = '5.1.0'
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -90,7 +91,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tudom, hogy meleg vagy V5" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="Tudom, hogy meleg vagy V5.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -101,6 +102,8 @@ $xaml = @'
     <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
       <GradientStop Color="#EF233C" Offset="0"/><GradientStop Color="#8B0017" Offset="1"/>
     </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#FF4057"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#3A1016"/>
     <DropShadowEffect x:Key="CardShadow" BlurRadius="22" ShadowDepth="4" Opacity="0.25" Color="#000000"/>
     <Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI"/></Style>
     <Style TargetType="Button">
@@ -116,7 +119,7 @@ $xaml = @'
               <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#3A1016"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
               <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.72"/></Trigger>
               <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.4"/></Trigger>
             </ControlTemplate.Triggers>
@@ -125,7 +128,7 @@ $xaml = @'
       </Setter>
     </Style>
     <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{StaticResource AccentGradient}"/><Setter Property="Foreground" Value="White"/>
+      <Setter Property="Background" Value="{DynamicResource AccentGradient}"/><Setter Property="Foreground" Value="White"/>
       <Setter Property="FontSize" Value="15"/><Setter Property="Padding" Value="24,14"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
@@ -146,13 +149,13 @@ $xaml = @'
               <Border Height="8" CornerRadius="4" Background="#2A2A2E" VerticalAlignment="Center"/>
               <Track Name="PART_Track" VerticalAlignment="Center">
                 <Track.DecreaseRepeatButton>
-                  <RepeatButton Command="Slider.DecreaseLarge" Background="{StaticResource AccentGradient}" BorderThickness="0">
+                  <RepeatButton Command="Slider.DecreaseLarge" Background="{DynamicResource AccentGradient}" BorderThickness="0">
                     <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="{TemplateBinding Background}" CornerRadius="4"/></ControlTemplate></RepeatButton.Template>
                   </RepeatButton>
                 </Track.DecreaseRepeatButton>
                 <Track.Thumb>
                   <Thumb Width="22" Height="22" Cursor="Hand">
-                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="#EF233C" StrokeThickness="5"/></ControlTemplate></Thumb.Template>
+                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="{DynamicResource AccentTextBrush}" StrokeThickness="5"/></ControlTemplate></Thumb.Template>
                   </Thumb>
                 </Track.Thumb>
                 <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton>
@@ -168,14 +171,14 @@ $xaml = @'
     </Style>
   </Window.Resources>
 
-  <Grid Background="{StaticResource PageGradient}">
+  <Grid Background="{DynamicResource PageGradient}">
     <Grid.RowDefinitions><RowDefinition Height="96"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
     <Grid Grid.Row="0" Margin="30,20,30,13">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
-        <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="#FF4057"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5  REDLINE" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="TUDOM, HOGY MELEG VAGY" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V5.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -204,7 +207,10 @@ $xaml = @'
           </StackPanel>
           <StackPanel Grid.Row="2">
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
-            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="#FF4057" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
+            <TextBlock Text="T É M A" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
+            <ComboBox Name="ThemeCombo" Height="32" Margin="0,0,0,9" Background="#18181B" Foreground="#F8FAFC" BorderBrush="#303035"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 5.1.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
         </Grid>
@@ -216,12 +222,12 @@ $xaml = @'
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <DockPanel><TextBlock Text="Hangerő-erősítés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Hangerő-erősítés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="VolumeSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True"/>
                 <TextBlock Text="Teljes tartomány: némítás–300%" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
               <StackPanel Grid.Column="2">
-                <DockPanel><TextBlock Text="Bass Boost" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Bass Boost" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="BassSlider" Minimum="0" Maximum="24" Value="6" TickFrequency="1" IsSnapToTickEnabled="True"/>
                 <TextBlock Text="Többsávos mélyhangkiemelés" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
@@ -233,7 +239,7 @@ $xaml = @'
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <DockPanel>
                 <TextBlock Text="Basszus középfrekvencia" FontSize="15" FontWeight="SemiBold"/>
-                <TextBlock Name="FrequencyValue" Text="75 Hz" FontSize="17" FontWeight="Bold" Foreground="#FF4057" HorizontalAlignment="Right"/>
+                <TextBlock Name="FrequencyValue" Text="75 Hz" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/>
               </DockPanel>
               <Slider Name="FrequencySlider" Grid.Row="1" Minimum="40" Maximum="160" Value="75" TickFrequency="5" IsSnapToTickEnabled="True"/>
             </Grid>
@@ -297,8 +303,9 @@ $appIconPath = Join-Path $script:appDirectory 'idkbroo Booster.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','ActiveProfileText')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','ActiveProfileText','ThemeCombo','VersionText')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
+$VersionText.Text = "Telepített verzió: $script:appVersion"
 
 $script:eqBands = @(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
 $script:eqSliders = @()
@@ -320,6 +327,47 @@ for ($i = 0; $i -lt $script:eqBands.Count; $i++) {
     $index = $i
     $slider.Add_ValueChanged({ $script:eqValueLabels[$index].Text = ([int]$script:eqSliders[$index].Value).ToString() }.GetNewClosure())
 }
+
+function Set-AppTheme([string]$themeName) {
+    $theme = switch ($themeName) {
+        'Black & Blue'     { @{ Accent='#22A7FF'; AccentDark='#0057B8'; Page='#071521'; Hover='#102D42' } }
+        'Graphite & Green' { @{ Accent='#35D07F'; AccentDark='#087443'; Page='#092018'; Hover='#123526' } }
+        default            { @{ Accent='#FF4057'; AccentDark='#8B0017'; Page='#20090B'; Hover='#3A1016' } }
+    }
+
+    $accentColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.Accent)
+    $accentDarkColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.AccentDark)
+    $pageColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.Page)
+    $baseColor = [Windows.Media.ColorConverter]::ConvertFromString('#070707')
+
+    $accentGradient = [Windows.Media.LinearGradientBrush]::new()
+    $accentGradient.StartPoint = [Windows.Point]::new(0, 0)
+    $accentGradient.EndPoint = [Windows.Point]::new(1, 1)
+    $accentGradient.GradientStops.Add([Windows.Media.GradientStop]::new($accentColor, 0))
+    $accentGradient.GradientStops.Add([Windows.Media.GradientStop]::new($accentDarkColor, 1))
+    $window.Resources['AccentGradient'] = $accentGradient
+
+    $pageGradient = [Windows.Media.LinearGradientBrush]::new()
+    $pageGradient.StartPoint = [Windows.Point]::new(0, 0)
+    $pageGradient.EndPoint = [Windows.Point]::new(1, 1)
+    $pageGradient.GradientStops.Add([Windows.Media.GradientStop]::new($baseColor, 0))
+    $pageGradient.GradientStops.Add([Windows.Media.GradientStop]::new($pageColor, 0.55))
+    $pageGradient.GradientStops.Add([Windows.Media.GradientStop]::new($baseColor, 1))
+    $window.Resources['PageGradient'] = $pageGradient
+
+    $window.Resources['AccentTextBrush'] = [Windows.Media.SolidColorBrush]::new($accentColor)
+    $window.Resources['HoverBrush'] = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString($theme.Hover))
+    foreach ($label in $script:eqValueLabels) { $label.Foreground = $window.Resources['AccentTextBrush'] }
+    $script:themeName = $themeName
+}
+
+$script:themeNames = @('Black & Red', 'Black & Blue', 'Graphite & Green')
+foreach ($themeName in $script:themeNames) { [void]$ThemeCombo.Items.Add($themeName) }
+$ThemeCombo.SelectedIndex = 0
+$ThemeCombo.Add_SelectionChanged({
+    if ($ThemeCombo.SelectedItem) { Set-AppTheme ([string]$ThemeCombo.SelectedItem) }
+})
+Set-AppTheme 'Black & Red'
 
 function Set-EqValues([double[]]$values) {
     for ($i = 0; $i -lt $script:eqSliders.Count; $i++) { $script:eqSliders[$i].Value = $values[$i] }
@@ -486,7 +534,7 @@ function Invoke-ApplyButton {
 
 function Get-AppState {
     return [PSCustomObject]@{
-        version = 3; profile = $script:activeProfile
+        version = 4; profile = $script:activeProfile; theme = $script:themeName
         volume = [int]$VolumeSlider.Value; bass = [int]$BassSlider.Value; frequency = [int]$FrequencySlider.Value
         safety = [bool]$SafetyCheck.IsChecked; autoProfile = [bool]$AutoProfileCheck.IsChecked; instant = [bool]$InstantCheck.IsChecked
         eq = @($script:eqSliders | ForEach-Object { [int]$_.Value })
@@ -500,6 +548,10 @@ function Set-AppState($state) {
     if ($state.eq -and $state.eq.Count -eq 10) { Set-EqValues ([double[]]$state.eq) }
     if ($null -ne $state.autoProfile) { $AutoProfileCheck.IsChecked = [bool]$state.autoProfile }
     if ($null -ne $state.instant) { $InstantCheck.IsChecked = [bool]$state.instant }
+    if ($state.theme -and $script:themeNames -contains [string]$state.theme) {
+        $ThemeCombo.SelectedItem = [string]$state.theme
+        Set-AppTheme ([string]$state.theme)
+    }
 }
 
 $appDataDirectory = Join-Path $env:APPDATA 'TudomHogyMelegVagy'
@@ -679,7 +731,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5'
+$script:trayIcon.Text = 'Tudom, hogy meleg vagy V5.1'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
