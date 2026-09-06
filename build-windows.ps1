@@ -3,7 +3,7 @@ $projectRoot = $PSScriptRoot
 $sourceScript = Join-Path $projectRoot 'TudomHogyMelegVagy.ps1'
 $iconFile = Join-Path $projectRoot 'idkbroo Booster.ico'
 $outputDirectory = Join-Path $projectRoot 'dist'
-$outputExe = Join-Path $outputDirectory 'idkbroo Booster.exe'
+$outputExe = Join-Path $outputDirectory 'SoundLift.exe'
 
 if (-not (Test-Path $outputDirectory)) { New-Item -ItemType Directory -Path $outputDirectory | Out-Null }
 
@@ -17,5 +17,5 @@ Import-Module ps2exe
 Invoke-PS2EXE $sourceScript $outputExe -IconFile $iconFile -NoConsole -RequireAdmin -STA -Verbose
 
 if (-not (Test-Path $outputExe)) { throw 'Az EXE fordítása nem sikerült.' }
-Copy-Item -LiteralPath $iconFile -Destination (Join-Path $outputDirectory 'idkbroo Booster.ico') -Force
+Copy-Item -LiteralPath $iconFile -Destination (Join-Path $outputDirectory 'SoundLift.ico') -Force
 Write-Host "Elkészült: $outputExe"
