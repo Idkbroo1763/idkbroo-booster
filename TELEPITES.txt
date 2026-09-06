@@ -1,4 +1,4 @@
-TUDOM, HOGY MELEG VAGY – TELEPÍTÉS WINDOWS 10/11-RE
+SOUNDLIFT – TELEPÍTÉS WINDOWS 10/11-RE
 ======================================
 
 1. Töltsd le és telepítsd az Equalizer APO-t a hivatalos oldalról:
@@ -9,9 +9,8 @@ TUDOM, HOGY MELEG VAGY – TELEPÍTÉS WINDOWS 10/11-RE
 
 3. Indítsd újra a számítógépet. Ez fontos, különben a hangeffekt nem működik.
 
-4. Csomagold ki a ZIP-et, majd indítsd el a TudomHogyMelegVagy.bat fájlt.
-   Az indító automatikusan rendszergazdai jogosultságot kér. A Windows
-   kérdésénél nyomj az Igen gombra; ezután az appot már nem kell újraindítani.
+4. Csomagold ki a ZIP-et, majd indítsd el a SoundLift Setup.exe fájlt.
+   A telepítő és az alkalmazás automatikusan rendszergazdai jogosultságot kér.
 
 5. Állítsd be a hangerőt és a basszust, majd nyomd meg az ALKALMAZÁS gombot.
    A változás általában azonnal hallható.
