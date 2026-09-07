@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $sourceScript = Join-Path $projectRoot 'TudomHogyMelegVagy.ps1'
-$iconFile = Join-Path $projectRoot 'idkbroo Booster.ico'
+$iconFile = Join-Path $projectRoot 'SoundLift.ico'
 $outputDirectory = Join-Path $projectRoot 'dist'
 $outputExe = Join-Path $outputDirectory 'SoundLift.exe'
 
