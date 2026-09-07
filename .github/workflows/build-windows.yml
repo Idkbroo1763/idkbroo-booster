@@ -1,17 +1,22 @@
 name: Build Windows application
-run-name: SoundLift V1.0.0 letöltése
+run-name: SoundLift V1.0.1 letöltése
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Build SoundLift.exe
         shell: powershell
@@ -24,13 +29,24 @@ jobs:
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
           & $iscc '.\installer.iss'
 
+      - name: Create SHA-256 checksums
+        shell: powershell
+        run: |
+          $files = @('dist\SoundLift.exe', 'dist\SoundLift Setup.exe', 'dist\SoundLift.ico')
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -LiteralPath 'dist\SHA256SUMS.txt' -Encoding ascii
+
       - name: Upload Windows files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.0.0 letöltése
+          name: SoundLift V1.0.1 letöltése
           path: |
             dist/SoundLift.exe
             dist/SoundLift Setup.exe
             dist/SoundLift.ico
+            dist/SHA256SUMS.txt
             TELEPÍTÉS.txt
           if-no-files-found: error

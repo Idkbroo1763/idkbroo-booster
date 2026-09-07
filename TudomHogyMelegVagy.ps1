@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.0.0'
+$script:appVersion = '1.0.1'
 $script:onboardingCompleted = $false
 Add-Type -TypeDefinition @"
 using System;
@@ -92,7 +92,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.0.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -184,7 +184,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.0.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -228,7 +228,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.0.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.0.1" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -767,12 +767,12 @@ $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 function Check-AppUpdate {
     param([switch]$Silent)
     try {
-        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/benesicsbeni-debug/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'SoundLift' } -TimeoutSec 8
+        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/Idkbroo1763/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'SoundLift' } -TimeoutSec 8
         $latestVersion = [version](([string]$latestText).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
             $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'SoundLift – Frissítés', 'YesNo', 'Information')
-            if ($answer -eq 'Yes') { Start-Process 'https://github.com/benesicsbeni-debug/idkbroo-booster/actions' }
+            if ($answer -eq 'Yes') { Start-Process 'https://github.com/Idkbroo1763/idkbroo-booster/actions/workflows/build-windows.yml' }
         } elseif (-not $Silent) {
             [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'SoundLift – Frissítés', 'OK', 'Information') | Out-Null
         }
@@ -820,6 +820,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.0.1 – BIZTONSÁGI FRISSÍTÉS
+• Frissítési hivatkozások átállítva az új hivatalos GitHub-címre.
+• Biztonságosabb, méret- és értékkorlátos profilimportálás.
+• A hangeszközválasztó csak az Equalizer APO ismert programjait indítja el.
+• Rögzített buildfüggőségek és SHA-256 ellenőrzőösszeg a letöltésekhez.
+
 V1.0.0 – ELSŐ NYILVÁNOS KIADÁS
 • Modern, témázható Windows-felület.
 • 0–300%-os hangerő-erősítés.
@@ -896,10 +902,41 @@ $ExportButton.Add_Click({
     $dialog.Filter = 'EQ profil (*.json)|*.json'; $dialog.FileName = 'sajat-hangprofil.json'
     if ($dialog.ShowDialog()) { (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $dialog.FileName -Encoding UTF8 }
 })
+
+function Test-ImportedProfile($state) {
+    if ($null -eq $state) { throw 'A profil üres vagy nem érvényes JSON-fájl.' }
+    $names = @($state.PSObject.Properties.Name)
+    foreach ($required in @('volume','bass','frequency','eq')) {
+        if ($names -notcontains $required) { throw "Hiányzó profilmező: $required" }
+    }
+
+    $volume = [double]$state.volume; $bass = [double]$state.bass; $frequency = [double]$state.frequency
+    if ([double]::IsNaN($volume) -or [double]::IsInfinity($volume) -or $volume -lt 0 -or $volume -gt 300) { throw 'A hangerő csak 0 és 300 között lehet.' }
+    if ([double]::IsNaN($bass) -or [double]::IsInfinity($bass) -or $bass -lt 0 -or $bass -gt 24) { throw 'A basszus csak 0 és 24 dB között lehet.' }
+    if ([double]::IsNaN($frequency) -or [double]::IsInfinity($frequency) -or $frequency -lt 40 -or $frequency -gt 160) { throw 'A frekvencia csak 40 és 160 Hz között lehet.' }
+    if ($state.eq.Count -ne 10) { throw 'Az EQ-profilnak pontosan 10 sávot kell tartalmaznia.' }
+    foreach ($value in $state.eq) {
+        $gain = [double]$value
+        if ([double]::IsNaN($gain) -or [double]::IsInfinity($gain) -or $gain -lt -12 -or $gain -gt 12) { throw 'Minden EQ-értéknek -12 és +12 dB között kell lennie.' }
+    }
+    if ($state.theme -and $script:themeNames -notcontains [string]$state.theme) { throw 'Ismeretlen témabeállítás található a profilban.' }
+}
+
 $ImportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.OpenFileDialog
     $dialog.Filter = 'EQ profil (*.json)|*.json'
-    if ($dialog.ShowDialog()) { Set-AppState (Get-Content -LiteralPath $dialog.FileName -Raw | ConvertFrom-Json) }
+    if ($dialog.ShowDialog()) {
+        try {
+            $file = Get-Item -LiteralPath $dialog.FileName -ErrorAction Stop
+            if ($file.Length -gt 65536) { throw 'A profilfájl túl nagy. A megengedett maximum 64 KB.' }
+            $state = Get-Content -LiteralPath $file.FullName -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+            Test-ImportedProfile $state
+            Set-AppState $state
+            $StatusText.Text = 'OK - Biztonságosan ellenőrzött profil importálva'
+        } catch {
+            [System.Windows.MessageBox]::Show("A profil nem importálható:`n$($_.Exception.Message)", 'Érvénytelen profil', 'OK', 'Warning') | Out-Null
+        }
+    }
 })
 $UndoButton.Add_Click({
     $apo = Get-ApoConfigDirectory
@@ -929,7 +966,6 @@ $DeviceButton.Add_Click({
     if ($installDirectory) {
         $candidates += Join-Path $installDirectory 'DeviceSelector.exe'
         $candidates += Join-Path $installDirectory 'Configurator.exe'
-        $candidates += @(Get-ChildItem -LiteralPath $installDirectory -Filter '*.exe' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Device|Configur' } | Select-Object -ExpandProperty FullName)
     }
     $selector = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
     if ($selector) {
@@ -1059,7 +1095,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.0'
+$script:trayIcon.Text = 'SoundLift V1.0.1'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

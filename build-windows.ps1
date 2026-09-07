@@ -7,10 +7,10 @@ $outputExe = Join-Path $outputDirectory 'SoundLift.exe'
 
 if (-not (Test-Path $outputDirectory)) { New-Item -ItemType Directory -Path $outputDirectory | Out-Null }
 
-if (-not (Get-Module -ListAvailable -Name ps2exe)) {
-    Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
+if (-not (Get-Module -ListAvailable -Name ps2exe | Where-Object Version -eq '1.0.18')) {
+    Install-Module ps2exe -RequiredVersion 1.0.18 -Scope CurrentUser -Force -AllowClobber
 }
-Import-Module ps2exe
+Import-Module ps2exe -RequiredVersion 1.0.18
 
 # A minimális, dokumentált paraméterkészletet használjuk. Ez elkerüli, hogy a
 # GitHub runner PowerShell-verziója a metaadat-kapcsolókat LCID-ként értelmezze.
