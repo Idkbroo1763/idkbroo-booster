@@ -14,6 +14,7 @@ create table if not exists public.licenses (
   key_hash text not null unique check (length(key_hash) = 64),
   customer_name text,
   customer_discord_id text,
+  license_type text not null default 'customer' check (license_type in ('customer','developer')),
   status text not null default 'active' check (status in ('active','revoked','suspended')),
   device_id text check (device_id is null or length(device_id) = 64),
   activated_at timestamptz,
@@ -23,6 +24,15 @@ create table if not exists public.licenses (
   last_transfer_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.licenses
+  add column if not exists license_type text not null default 'customer';
+
+do $$ begin
+  alter table public.licenses add constraint licenses_license_type_check
+    check (license_type in ('customer','developer'));
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists public.license_events (
   id bigint generated always as identity primary key,
@@ -71,7 +81,7 @@ begin
   where id = target.id;
   insert into public.license_events(license_id, event_type, device_id)
   values (target.id, case when target.device_id is null then 'activated' else 'validated' end, p_device_id);
-  return jsonb_build_object('allowed', true, 'code', 'OK', 'message', 'A licenc érvényes.');
+  return jsonb_build_object('allowed', true, 'code', 'OK', 'message', 'A licenc érvényes.', 'license_type', target.license_type);
 end;
 $$;
 

@@ -21,15 +21,12 @@ values ('soundlift-custom', 'SoundLift Custom');
 
 ## Licenckulcs készítése
 
-Készíts legalább 128 bit véletlen adatból kulcsot, például PowerShellben:
+Készíts legalább 128 bit véletlen adatból kulcsot a mellékelt, Windows
+PowerShell 5.1-kompatibilis segédprogrammal:
 
 ```powershell
-$bytes = [byte[]]::new(16)
-[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-$key = 'SL-' + ([Convert]::ToHexString($bytes))
-$hash = ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($key)))).Replace('-','').ToLowerInvariant()
-"Kulcs a vásárlónak: $key"
-"Adatbázisba kerülő hash: $hash"
+.\New-SoundLiftLicense.ps1 -ProductId 'soundlift-custom' `
+  -CustomerName 'Vásárló neve' -DiscordId 'DISCORD_USER_ID' -Type customer
 ```
 
 Ezután a hash kerüljön az adatbázisba; a nyers kulcsot csak a vásárló kapja:
@@ -39,6 +36,28 @@ insert into public.licenses(product_id, key_hash, customer_name, customer_discor
 select id, 'A_GENERALT_64_KARAKTERES_HASH', 'Vásárló neve', 'Discord user ID'
 from public.license_products where product_id = 'soundlift-custom';
 ```
+
+## Külön fejlesztői tesztlicenc
+
+Minden vásárlói termékhez külön `developer` licencet használj. Ez ugyanahhoz a
+`product_id` értékhez tartozik, ezért ugyanaz az EXE a te gépeden is tesztelhető.
+A fejlesztői licenc külön adatbázissor és külön gépkapcsolat, ezért a vásárló
+`customer` licence nem válik le.
+
+```powershell
+.\New-SoundLiftLicense.ps1 -ProductId 'soundlift-custom' `
+  -CustomerName 'ɪᴅᴋʙʀᴏᴏ' -DiscordId 'SAJAT_DISCORD_ID' `
+  -Type developer -ExpiresInDays 7
+```
+
+Javasolt szabályok:
+
+- a vásárlói kulcs típusa mindig `customer`;
+- a saját tesztkulcsod típusa `developer`;
+- egy fejlesztői kulcs csak egyetlen vásárlói termékhez tartozzon;
+- alapból 7 nap után járjon le;
+- tesztelés után állítsd `revoked` állapotba;
+- soha ne kerüljön univerzális mesterkulcs az alkalmazásba.
 
 ## Vásárlói build
 
