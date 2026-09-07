@@ -810,7 +810,7 @@ function Show-AboutWindow {
     $actions.ColumnDefinitions.Add([Windows.Controls.ColumnDefinition]::new()); $actions.ColumnDefinitions.Add([Windows.Controls.ColumnDefinition]::new())
     $discordButton = [Windows.Controls.Button]::new(); $discordButton.Content = 'Csatlakozás a Discord-szerverhez'; $discordButton.Height = 46; $discordButton.Margin = [Windows.Thickness]::new(0,0,8,0); $discordButton.Style = $window.Resources['PrimaryButton']
     $closeButton = [Windows.Controls.Button]::new(); $closeButton.Content = 'Bezárás'; $closeButton.Height = 46; $closeButton.Margin = [Windows.Thickness]::new(8,0,0,0); $closeButton.Style = $window.Resources['UtilityButton']
-    $discordButton.Add_Click({ try { Start-Process 'https://discord.gg/6qmgcxuu6c' } catch { [System.Windows.MessageBox]::Show('A Discord-link nem nyitható meg.', 'Névjegy', 'OK', 'Warning') | Out-Null } })
+    $discordButton.Add_Click({ try { Start-Process 'https://discord.gg/h9CaQ47gDT' } catch { [System.Windows.MessageBox]::Show('A Discord-link nem nyitható meg.', 'Névjegy', 'OK', 'Warning') | Out-Null } })
     $closeButton.Add_Click({ $dialog.Close() }.GetNewClosure())
     $actions.Children.Add($discordButton) | Out-Null; [Windows.Controls.Grid]::SetColumn($closeButton, 1); $actions.Children.Add($closeButton) | Out-Null
     [Windows.Controls.Grid]::SetRow($actions, 1); $root.Children.Add($actions) | Out-Null
