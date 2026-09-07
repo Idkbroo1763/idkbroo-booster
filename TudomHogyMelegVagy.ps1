@@ -17,6 +17,12 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 }
 $script:appVersion = '1.0.1'
 $script:onboardingCompleted = $false
+# A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
+# vásárlói build készítésekor biztonságosan behelyettesíti.
+$script:licenseMode = 'free'
+$script:licenseApiUrl = ''
+$script:licenseProductId = ''
+$script:licenseAnonKey = ''
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -80,6 +86,94 @@ function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Get-LicenseDeviceId {
+    try {
+        $machineGuid = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Cryptography' -Name MachineGuid -ErrorAction Stop).MachineGuid
+    } catch {
+        $machineGuid = "fallback:$env:COMPUTERNAME:$env:PROCESSOR_IDENTIFIER"
+    }
+    $raw = "$machineGuid|$($script:licenseProductId)|SoundLift"
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($raw)))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
+}
+
+function Protect-LicenseState([object]$state) {
+    $plain = [Text.Encoding]::UTF8.GetBytes(($state | ConvertTo-Json -Compress))
+    $protected = [Security.Cryptography.ProtectedData]::Protect($plain, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
+    return [Convert]::ToBase64String($protected)
+}
+
+function Unprotect-LicenseState([string]$value) {
+    if ([string]::IsNullOrWhiteSpace($value)) { return $null }
+    $protected = [Convert]::FromBase64String($value)
+    $plain = [Security.Cryptography.ProtectedData]::Unprotect($protected, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
+    return ([Text.Encoding]::UTF8.GetString($plain) | ConvertFrom-Json)
+}
+
+function Get-SavedLicenseState {
+    $path = Join-Path $env:APPDATA 'SoundLift\license.dat'
+    if (-not (Test-Path $path)) { return $null }
+    try { return Unprotect-LicenseState ([IO.File]::ReadAllText($path)) } catch { return $null }
+}
+
+function Save-LicenseState([string]$licenseKey) {
+    $directory = Join-Path $env:APPDATA 'SoundLift'
+    if (-not (Test-Path $directory)) { [void][IO.Directory]::CreateDirectory($directory) }
+    $state = [PSCustomObject]@{ key = $licenseKey.Trim(); lastSuccessUtc = [DateTime]::UtcNow.ToString('o') }
+    [IO.File]::WriteAllText((Join-Path $directory 'license.dat'), (Protect-LicenseState $state), [Text.Encoding]::UTF8)
+}
+
+function Invoke-LicenseApi([string]$licenseKey) {
+    if ([string]::IsNullOrWhiteSpace($script:licenseApiUrl) -or [string]::IsNullOrWhiteSpace($script:licenseProductId)) {
+        throw 'A vásárlói build licenckiszolgálója nincs beállítva.'
+    }
+    $headers = @{ 'Content-Type' = 'application/json'; 'User-Agent' = "SoundLift/$($script:appVersion)" }
+    if (-not [string]::IsNullOrWhiteSpace($script:licenseAnonKey)) {
+        $headers['apikey'] = $script:licenseAnonKey
+        $headers['Authorization'] = "Bearer $($script:licenseAnonKey)"
+    }
+    $body = @{ license_key = $licenseKey.Trim(); product_id = $script:licenseProductId; device_id = Get-LicenseDeviceId } | ConvertTo-Json -Compress
+    return Invoke-RestMethod -Uri $script:licenseApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 12
+}
+
+function Show-LicenseKeyDialog {
+    $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Licencaktiválás'; $dialog.Width = 560; $dialog.Height = 310
+    $dialog.ResizeMode = 'NoResize'; $dialog.WindowStartupLocation = 'CenterScreen'; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
+    $root = [Windows.Controls.StackPanel]::new(); $root.Margin = [Windows.Thickness]::new(28)
+    $title = [Windows.Controls.TextBlock]::new(); $title.Text = 'Vásárlói licenc aktiválása'; $title.FontSize = 23; $title.FontWeight = 'Bold'
+    $info = [Windows.Controls.TextBlock]::new(); $info.Text = "Írd be a vásárláskor kapott licenckulcsot.`nA kulcs az első sikeres aktiváláskor ehhez a számítógéphez kapcsolódik."; $info.TextWrapping = 'Wrap'; $info.Margin = [Windows.Thickness]::new(0,12,0,16); $info.Foreground = '#CBD5E1'
+    $input = [Windows.Controls.TextBox]::new(); $input.Height = 38; $input.Padding = [Windows.Thickness]::new(8); $input.FontSize = 14
+    $buttons = [Windows.Controls.StackPanel]::new(); $buttons.Orientation = 'Horizontal'; $buttons.HorizontalAlignment = 'Right'; $buttons.Margin = [Windows.Thickness]::new(0,18,0,0)
+    $cancel = [Windows.Controls.Button]::new(); $cancel.Content = 'Mégse'; $cancel.Width = 100; $cancel.Height = 38; $cancel.Margin = [Windows.Thickness]::new(0,0,10,0)
+    $activate = [Windows.Controls.Button]::new(); $activate.Content = 'Aktiválás'; $activate.Width = 125; $activate.Height = 38
+    $result = @{ key = $null }; $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
+    $activate.Add_Click({ if (-not [string]::IsNullOrWhiteSpace($input.Text)) { $result.key = $input.Text.Trim(); $dialog.Close() } }.GetNewClosure())
+    $buttons.Children.Add($cancel) | Out-Null; $buttons.Children.Add($activate) | Out-Null
+    $root.Children.Add($title) | Out-Null; $root.Children.Add($info) | Out-Null; $root.Children.Add($input) | Out-Null; $root.Children.Add($buttons) | Out-Null
+    $dialog.Content = $root; $dialog.ShowDialog() | Out-Null; return $result.key
+}
+
+function Confirm-CustomLicense {
+    if ($script:licenseMode -ne 'custom') { return $true }
+    $saved = Get-SavedLicenseState
+    $key = if ($saved -and $saved.key) { [string]$saved.key } else { Show-LicenseKeyDialog }
+    if ([string]::IsNullOrWhiteSpace($key)) { return $false }
+    try {
+        $response = Invoke-LicenseApi $key
+        if ($response.allowed -eq $true) { Save-LicenseState $key; return $true }
+        [System.Windows.MessageBox]::Show(([string]$response.message), 'A licenc nem használható', 'OK', 'Warning') | Out-Null
+        return $false
+    } catch {
+        # Rövid internetkimaradásnál 72 órás, DPAPI-val védett türelmi idő.
+        if ($saved -and $saved.lastSuccessUtc) {
+            try { if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) { return $true } } catch { }
+        }
+        [System.Windows.MessageBox]::Show("A licenc most nem ellenőrizhető, és nincs érvényes offline időszak.`n`n$($_.Exception.Message)", 'Licencellenőrzési hiba', 'OK', 'Error') | Out-Null
+        return $false
+    }
 }
 
 function Get-ApoConfigDirectory {
@@ -1138,6 +1232,7 @@ $script:startupUiHandled = $false
 $window.Add_ContentRendered({
     if ($script:startupUiHandled) { return }
     $script:startupUiHandled = $true
+    if (-not (Confirm-CustomLicense)) { $script:reallyExit = $true; $window.Close(); return }
     if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
     Check-AppUpdate -Silent
 })
