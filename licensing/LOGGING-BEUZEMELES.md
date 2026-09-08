@@ -39,7 +39,7 @@ webhook → Webhook URL másolása**. A csatorna-ID-kre nincs szükség.
    telepítsd a három Edge Functiont:
 
 ```powershell
-supabase functions deploy log-events
+supabase functions deploy log-events --no-verify-jwt
 supabase functions deploy verify-license
 supabase functions deploy admin-license-action --no-verify-jwt
 ```
