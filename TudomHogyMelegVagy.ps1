@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.0.1'
+$script:appVersion = '1.1.0'
 $script:onboardingCompleted = $false
 # A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
 # vásárlói build készítésekor biztonságosan behelyettesíti.
@@ -23,6 +23,132 @@ $script:licenseMode = 'free'
 $script:licenseApiUrl = ''
 $script:licenseProductId = ''
 $script:licenseAnonKey = ''
+# A build-szkriptek kizárólag a publikus naplófogadó végpontot és a Supabase
+# anon kulcsot építhetik be. Discord webhook, bot token és service-role kulcs
+# soha nem kerülhet a kliensbe.
+$script:logApiUrl = ''
+$script:logAnonKey = ''
+$script:loggerInitialized = $false
+$script:startupCompleted = $false
+
+function ConvertTo-SoundLiftSafeText([object]$value, [int]$maxLength = 1000) {
+    if ($null -eq $value) { return '' }
+    $text = [string]$value
+    foreach ($path in @($env:USERPROFILE, $env:APPDATA, $env:LOCALAPPDATA)) {
+        if (-not [string]::IsNullOrWhiteSpace($path)) { $text = $text.Replace($path, '%USERPROFILE%') }
+    }
+    $text = [Regex]::Replace($text, '(?i)\b(?:SL-[A-Z0-9-]{12,}|[A-F0-9]{32,})\b', '[REDACTED]')
+    if ($text.Length -gt $maxLength) { return $text.Substring(0, $maxLength) }
+    return $text
+}
+
+function Initialize-SoundLiftLogger {
+    if ($script:loggerInitialized) { return }
+    try {
+        $script:logRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'SoundLift\logs'
+        if (-not (Test-Path $script:logRoot)) { [void][IO.Directory]::CreateDirectory($script:logRoot) }
+        $script:logFile = Join-Path $script:logRoot ("soundlift-{0}.ndjson" -f (Get-Date -Format 'yyyy-MM-dd'))
+        $script:logQueueFile = Join-Path $script:logRoot 'pending-events.ndjson'
+        $script:logStateFile = Join-Path $script:logRoot 'logger-state.json'
+        $installIdPath = Join-Path $script:logRoot 'installation-id.txt'
+        if (Test-Path $installIdPath) { $script:installationId = ([IO.File]::ReadAllText($installIdPath)).Trim() }
+        if ([string]::IsNullOrWhiteSpace($script:installationId) -or $script:installationId -notmatch '^[a-f0-9-]{36}$') {
+            $script:installationId = [Guid]::NewGuid().ToString()
+            [IO.File]::WriteAllText($installIdPath, $script:installationId, [Text.Encoding]::UTF8)
+        }
+        Get-ChildItem -LiteralPath $script:logRoot -Filter 'soundlift-*.ndjson' -File -ErrorAction SilentlyContinue |
+            Where-Object LastWriteTimeUtc -lt ([DateTime]::UtcNow.AddDays(-14)) | Remove-Item -Force -ErrorAction SilentlyContinue
+        $script:loggerInitialized = $true
+    } catch { $script:loggerInitialized = $false }
+}
+
+function Add-SoundLiftPendingEvent([object]$event) {
+    if (-not $script:loggerInitialized -or [string]::IsNullOrWhiteSpace($script:logApiUrl)) { return }
+    try {
+        $line = $event | ConvertTo-Json -Compress -Depth 6
+        [IO.File]::AppendAllText($script:logQueueFile, $line + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+        if ((Get-Item -LiteralPath $script:logQueueFile).Length -gt 1048576) {
+            $tail = @(Get-Content -LiteralPath $script:logQueueFile -Tail 500 -ErrorAction Stop)
+            [IO.File]::WriteAllLines($script:logQueueFile, $tail, [Text.UTF8Encoding]::new($false))
+        }
+    } catch { }
+}
+
+function Write-SoundLiftLog {
+    param(
+        [Parameter(Mandatory=$true)][ValidateSet('startup','crash','update','license','security','developer_access')][string]$Category,
+        [Parameter(Mandatory=$true)][string]$EventName,
+        [ValidateSet('debug','info','warning','error','critical')][string]$Severity = 'info',
+        [hashtable]$Data = @{},
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+    try {
+        Initialize-SoundLiftLogger
+        if (-not $script:loggerInitialized) { return }
+        $safeData = [ordered]@{}
+        foreach ($key in @($Data.Keys)) { $safeData[[string]$key] = ConvertTo-SoundLiftSafeText $Data[$key] }
+        if ($ErrorRecord) {
+            $safeData.exception_type = ConvertTo-SoundLiftSafeText $ErrorRecord.Exception.GetType().FullName 200
+            $safeData.message = ConvertTo-SoundLiftSafeText $ErrorRecord.Exception.Message 1000
+            $safeData.script_stack = ConvertTo-SoundLiftSafeText $ErrorRecord.ScriptStackTrace 1600
+        }
+        $event = [ordered]@{
+            schema_version = 1; event_id = [Guid]::NewGuid().ToString(); timestamp_utc = [DateTime]::UtcNow.ToString('o')
+            category = $Category; event_name = (ConvertTo-SoundLiftSafeText $EventName 80); severity = $Severity
+            app_version = $script:appVersion; installation_id = $script:installationId
+            license_mode = $script:licenseMode; product_id = (ConvertTo-SoundLiftSafeText $script:licenseProductId 64); data = $safeData
+        }
+        [IO.File]::AppendAllText($script:logFile, (($event | ConvertTo-Json -Compress -Depth 6) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+        Add-SoundLiftPendingEvent $event
+    } catch { }
+}
+
+function Send-SoundLiftPendingLogs {
+    Initialize-SoundLiftLogger
+    if (-not $script:loggerInitialized -or [string]::IsNullOrWhiteSpace($script:logApiUrl) -or -not (Test-Path $script:logQueueFile)) { return }
+    try {
+        $allLines = @(Get-Content -LiteralPath $script:logQueueFile -ErrorAction Stop | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($allLines.Count -eq 0) { return }
+        $take = [Math]::Min(50, $allLines.Count)
+        $events = New-Object Collections.Generic.List[object]
+        for ($i = 0; $i -lt $take; $i++) { try { $events.Add(($allLines[$i] | ConvertFrom-Json -ErrorAction Stop)) } catch { } }
+        if ($events.Count -eq 0) { [IO.File]::Delete($script:logQueueFile); return }
+        $headers = @{ 'Content-Type'='application/json'; 'User-Agent'="SoundLift/$($script:appVersion)" }
+        if (-not [string]::IsNullOrWhiteSpace($script:logAnonKey)) { $headers.apikey=$script:logAnonKey; $headers.Authorization="Bearer $($script:logAnonKey)" }
+        $body = @{ events = @($events) } | ConvertTo-Json -Compress -Depth 8
+        $response = Invoke-RestMethod -Uri $script:logApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 8
+        if ($response.accepted -ge 0) {
+            $remaining = if ($allLines.Count -gt $take) { @($allLines[$take..($allLines.Count - 1)]) } else { @() }
+            [IO.File]::WriteAllLines($script:logQueueFile, $remaining, [Text.UTF8Encoding]::new($false))
+        }
+    } catch { }
+}
+
+function Complete-SoundLiftStartup {
+    try {
+        $previousVersion = ''
+        if (Test-Path $script:logStateFile) {
+            try { $previousVersion = [string]((Get-Content -LiteralPath $script:logStateFile -Raw | ConvertFrom-Json).lastSuccessfulVersion) } catch { }
+        }
+        if ($previousVersion -and $previousVersion -ne $script:appVersion) {
+            Write-SoundLiftLog -Category update -EventName 'version_changed' -Data @{ old_version=$previousVersion; new_version=$script:appVersion }
+        }
+        [IO.File]::WriteAllText($script:logStateFile, (@{lastSuccessfulVersion=$script:appVersion; updatedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress), [Text.Encoding]::UTF8)
+        $script:startupCompleted = $true
+        Write-SoundLiftLog -Category startup -EventName 'initialization_succeeded' -Data @{ packaged=$script:isPackagedExe }
+        Send-SoundLiftPendingLogs
+    } catch { }
+}
+
+Initialize-SoundLiftLogger
+Write-SoundLiftLog -Category startup -EventName 'process_started' -Data @{ packaged=$script:isPackagedExe }
+trap {
+    $crashEvent = if ($script:startupCompleted) { 'unhandled_runtime_error' } else { 'startup_crash' }
+    Write-SoundLiftLog -Category crash -EventName $crashEvent -Severity critical -ErrorRecord $_
+    if (-not $script:startupCompleted) { Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity critical -ErrorRecord $_ }
+    Send-SoundLiftPendingLogs
+    break
+}
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -136,7 +262,24 @@ function Invoke-LicenseApi([string]$licenseKey) {
         $headers['Authorization'] = "Bearer $($script:licenseAnonKey)"
     }
     $body = @{ license_key = $licenseKey.Trim(); product_id = $script:licenseProductId; device_id = Get-LicenseDeviceId } | ConvertTo-Json -Compress
-    return Invoke-RestMethod -Uri $script:licenseApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 12
+    try {
+        return Invoke-RestMethod -Uri $script:licenseApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 12
+    } catch {
+        # Windows PowerShell 5.1 a szabályos 4xx licencválaszt is kivételként adja.
+        # Ezt visszaalakítjuk válaszobjektummá, hogy egy letiltott kulcs soha ne
+        # essen bele tévesen az offline türelmi időbe.
+        $webResponse = $_.Exception.Response
+        if ($webResponse) {
+            try {
+                $statusCode = [int]$webResponse.StatusCode
+                if ($statusCode -ge 400 -and $statusCode -lt 500) {
+                    $reader = New-Object IO.StreamReader($webResponse.GetResponseStream())
+                    try { return ($reader.ReadToEnd() | ConvertFrom-Json -ErrorAction Stop) } finally { $reader.Dispose() }
+                }
+            } catch { }
+        }
+        throw
+    }
 }
 
 function Show-LicenseKeyDialog {
@@ -160,17 +303,39 @@ function Confirm-CustomLicense {
     if ($script:licenseMode -ne 'custom') { return $true }
     $saved = Get-SavedLicenseState
     $key = if ($saved -and $saved.key) { [string]$saved.key } else { Show-LicenseKeyDialog }
-    if ([string]::IsNullOrWhiteSpace($key)) { return $false }
+    if ([string]::IsNullOrWhiteSpace($key)) {
+        Write-SoundLiftLog -Category license -EventName 'activation_cancelled' -Severity warning
+        return $false
+    }
     try {
         $response = Invoke-LicenseApi $key
-        if ($response.allowed -eq $true) { Save-LicenseState $key; return $true }
+        if ($response.allowed -eq $true) {
+            Save-LicenseState $key
+            $eventName = if ($saved -and $saved.key) { 'validation_succeeded' } else { 'activation_succeeded' }
+            Write-SoundLiftLog -Category license -EventName $eventName -Data @{ license_type=$response.license_type; code=$response.code }
+            if ([string]$response.license_type -eq 'developer') {
+                Write-SoundLiftLog -Category developer_access -EventName 'developer_license_used' -Severity warning -Data @{ authorization_id=$response.authorization_id; code=$response.code }
+            }
+            return $true
+        }
+        $failureCode = ConvertTo-SoundLiftSafeText $response.code 60
+        Write-SoundLiftLog -Category license -EventName 'validation_failed' -Severity warning -Data @{ code=$failureCode }
+        if ($failureCode -in @('INVALID_LICENSE','LICENSE_BLOCKED','LICENSE_EXPIRED','DEVICE_LIMIT')) {
+            Write-SoundLiftLog -Category security -EventName 'license_rejected' -Severity warning -Data @{ code=$failureCode }
+        }
         [System.Windows.MessageBox]::Show(([string]$response.message), 'A licenc nem használható', 'OK', 'Warning') | Out-Null
         return $false
     } catch {
         # Rövid internetkimaradásnál 72 órás, DPAPI-val védett türelmi idő.
         if ($saved -and $saved.lastSuccessUtc) {
-            try { if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) { return $true } } catch { }
+            try {
+                if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) {
+                    Write-SoundLiftLog -Category license -EventName 'offline_grace_used' -Severity warning -Data @{ grace_hours=72 }
+                    return $true
+                }
+            } catch { }
         }
+        Write-SoundLiftLog -Category license -EventName 'validation_unavailable' -Severity error -ErrorRecord $_
         [System.Windows.MessageBox]::Show("A licenc most nem ellenőrizhető, és nincs érvényes offline időszak.`n`n$($_.Exception.Message)", 'Licencellenőrzési hiba', 'OK', 'Error') | Out-Null
         return $false
     }
@@ -186,7 +351,7 @@ function Get-ApoConfigDirectory {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.0.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -278,7 +443,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.0.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.1.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -322,7 +487,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.0.1" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.1.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -440,6 +605,21 @@ $xaml = @'
 
 $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
+$window.Dispatcher.Add_UnhandledException({
+    param($sender, $eventArgs)
+    try {
+        Write-SoundLiftLog -Category crash -EventName 'unhandled_runtime_error' -Severity critical -Data @{
+            exception_type=$eventArgs.Exception.GetType().FullName
+            message=$eventArgs.Exception.Message
+            script_stack=$eventArgs.Exception.StackTrace
+        }
+        Send-SoundLiftPendingLogs
+        [System.Windows.MessageBox]::Show("A SoundLift váratlan hibát észlelt, ezért biztonságosan bezárul.`nA részletes napló itt található:`n$script:logRoot", 'SoundLift – hiba', 'OK', 'Error') | Out-Null
+    } catch { }
+    $eventArgs.Handled = $true
+    $script:reallyExit = $true
+    $window.Close()
+}.GetNewClosure())
 $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
@@ -662,6 +842,7 @@ $ApplyButton.Add_Click({
         $StatusText.Text = "OK - Beállítás alkalmazva: $([int]$volumePercent)% / $([int]$bassDb) dB"
         $StatusBorder.Background = '#143126'
     } catch {
+        Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='apply_audio_config' } -ErrorRecord $_
         [System.Windows.MessageBox]::Show("Nem sikerült menteni:`n$($_.Exception.Message)", 'SoundLift – hiba', 'OK', 'Error') | Out-Null
     } finally {
         $script:applyBusy = $false
@@ -860,17 +1041,26 @@ $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 
 function Check-AppUpdate {
     param([switch]$Silent)
+    Write-SoundLiftLog -Category update -EventName 'update_check_started'
     try {
         $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/Idkbroo1763/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'SoundLift' } -TimeoutSec 8
         $latestVersion = [version](([string]$latestText).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
+            Write-SoundLiftLog -Category update -EventName 'update_available' -Data @{ old_version=$currentVersion; new_version=$latestVersion }
             $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'SoundLift – Frissítés', 'YesNo', 'Information')
-            if ($answer -eq 'Yes') { Start-Process 'https://github.com/Idkbroo1763/idkbroo-booster/actions/workflows/build-windows.yml' }
+            if ($answer -eq 'Yes') {
+                Start-Process 'https://github.com/Idkbroo1763/idkbroo-booster/actions/workflows/build-windows.yml'
+                Write-SoundLiftLog -Category update -EventName 'download_page_opened' -Data @{ old_version=$currentVersion; new_version=$latestVersion }
+            }
         } elseif (-not $Silent) {
+            Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$currentVersion }
             [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'SoundLift – Frissítés', 'OK', 'Information') | Out-Null
+        } else {
+            Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$currentVersion }
         }
     } catch {
+        Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity warning -ErrorRecord $_
         if (-not $Silent) {
             [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`nEllenőrizd az internetkapcsolatot, vagy próbáld újra később.`n`n$($_.Exception.Message)", 'SoundLift – Frissítés', 'OK', 'Warning') | Out-Null
         }
@@ -914,6 +1104,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.1.0 – KÖZPONTI NAPLÓZÁS
+• Helyi technikai naplók és következő indításkor újrapróbált hibajelentések.
+• Indítási, összeomlási, frissítési, licenc- és biztonsági események.
+• Fejlesztői tesztlicenc-hozzáférések külön naplózása.
+• Biztonságos backend-továbbítás: nincs Discord webhook vagy titkos kulcs a kliensben.
+
 V1.0.1 – BIZTONSÁGI FRISSÍTÉS
 • Frissítési hivatkozások átállítva az új hivatalos GitHub-címre.
 • Biztonságosabb, méret- és értékkorlátos profilimportálás.
@@ -975,6 +1171,7 @@ function Show-FirstRunWizard {
     $pages = @(
         @{ Title='Üdv a SoundLiftben!'; Body="Ez a rövid beállítás segít, hogy a hangerő- és EQ-profilok valóban a megfelelő hangeszközön működjenek.`n`nA program az Equalizer APO-ra épül, ezért annak telepítve kell lennie." },
         @{ Title='Gyors rendszerellenőrzés'; Body="Equalizer APO: $apoState`nRendszergazdai futtatás: $adminState`nAktív hangkimenet: $output`n`nHa az APO nem található, telepítsd az Equalizer APO-t, majd indítsd újra ezt a programot." },
+        @{ Title='Műszaki naplózás'; Body="A SoundLift működési, frissítési és hibaeseményeket naplóz a %LOCALAPPDATA%\SoundLift\logs mappába. Ha a kiadásban be van állítva a naplószerver, a szükséges technikai eseményeket hibakeresés és biztonság céljából annak is elküldi.`n`nNem küldünk nyers licenckulcsot, Windows-felhasználónevet, teljes gépazonosítót vagy kattintási előzményt." },
         @{ Title='Már majdnem kész'; Body="1. Nyisd meg a Hangeszközök menüt.`n2. Pipáld ki az aktív lejátszóeszközt.`n3. Indítsd újra a Windowst, ha az APO ezt kéri.`n4. Válassz egy profilt, majd nyomd meg az ALKALMAZÁS gombot.`n`nA Diagnosztika gomb később segít a hibakeresésben." }
     )
     $wizardState = @{ Page = 0 }
@@ -1081,6 +1278,7 @@ $DeviceButton.Add_Click({
             $env:QT_QPA_PLATFORM_PLUGIN_PATH = $oldQtPlatformPath
         } catch {
             $env:QT_QPA_PLATFORM_PLUGIN_PATH = $oldQtPlatformPath
+            Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='device_selector' } -ErrorRecord $_
             [System.Windows.MessageBox]::Show("A hangeszközválasztó nem indítható el:`n$($_.Exception.Message)", 'Eszközök') | Out-Null
         }
     } else {
@@ -1144,6 +1342,7 @@ $StartupCheck.Add_Click({
             [IO.File]::Delete($startupShortcut)
         }
     } catch {
+        Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='startup_shortcut' } -ErrorRecord $_
         [System.Windows.MessageBox]::Show("Indítási beállítási hiba:`n$($_.Exception.Message)", 'Hiba', 'OK', 'Error') | Out-Null
     }
 })
@@ -1189,7 +1388,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.0.1'
+$script:trayIcon.Text = 'SoundLift V1.1.0'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -1232,8 +1431,29 @@ $script:startupUiHandled = $false
 $window.Add_ContentRendered({
     if ($script:startupUiHandled) { return }
     $script:startupUiHandled = $true
-    if (-not (Confirm-CustomLicense)) { $script:reallyExit = $true; $window.Close(); return }
-    if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
-    Check-AppUpdate -Silent
+    try {
+        if (-not (Confirm-CustomLicense)) {
+            Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity warning -Data @{ stage='license_gate' }
+            Send-SoundLiftPendingLogs
+            $script:reallyExit = $true; $window.Close(); return
+        }
+        if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
+        Check-AppUpdate -Silent
+        Complete-SoundLiftStartup
+    } catch {
+        Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity critical -ErrorRecord $_
+        Write-SoundLiftLog -Category crash -EventName 'startup_crash' -Severity critical -ErrorRecord $_
+        Send-SoundLiftPendingLogs
+        [System.Windows.MessageBox]::Show("A SoundLift indítása közben hiba történt.`nA részletes napló itt található:`n$script:logRoot", 'SoundLift – indítási hiba', 'OK', 'Error') | Out-Null
+        $script:reallyExit = $true; $window.Close()
+    }
 })
-$window.ShowDialog() | Out-Null
+try {
+    $window.ShowDialog() | Out-Null
+} catch {
+    $eventName = if ($script:startupCompleted) { 'unhandled_runtime_error' } else { 'startup_crash' }
+    Write-SoundLiftLog -Category crash -EventName $eventName -Severity critical -ErrorRecord $_
+    if (-not $script:startupCompleted) { Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity critical -ErrorRecord $_ }
+    Send-SoundLiftPendingLogs
+    [System.Windows.MessageBox]::Show("A SoundLift váratlan hibával leállt.`nA jelentés helyileg el lett mentve:`n$script:logRoot", 'SoundLift – hiba', 'OK', 'Error') | Out-Null
+}

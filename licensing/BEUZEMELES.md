@@ -74,13 +74,14 @@ Az elkészült fájl: `dist-custom\SoundLift Custom.exe`.
 
 ## Áthelyezés új számítógépre
 
-Ellenőrizd a vásárló Discord-azonosítóját, majd a Supabase SQL Editorban futtasd:
+Ellenőrizd a vásárló Discord-azonosítóját, majd használd a naplózott admin
+segédprogramot:
 
-```sql
-update public.licenses
-set device_id = null, activated_at = null,
-    transfer_count = transfer_count + 1, last_transfer_at = now()
-where id = 'LICENSE_UUID' and status = 'active';
+```powershell
+$env:SOUNDLIFT_ADMIN_API_URL='https://PROJECT.supabase.co/functions/v1/admin-license-action'
+$env:SOUNDLIFT_ADMIN_API_KEY='A_SAJAT_ADMIN_KULCSOD'
+.\Invoke-SoundLiftLicenseAdmin.ps1 -Action detach_device `
+  -LicenseId 'LICENSE_UUID' -Reason 'Ellenőrzött gépcsere'
 ```
 
 Ezután ugyanazt a kulcsot beírhatja az új gépen. Javasolt szabály: automatikus
@@ -91,3 +92,6 @@ Ezután ugyanazt a kulcsot beírhatja az új gépen. Javasolt szabály: automati
 Egy kliensoldali program védelme megnehezíti a jogosulatlan használatot, de nem
 teszi matematikailag lehetetlenné a feltörést vagy az EXE továbbküldését. A
 service-role kulcsot és a teljes licenclistát ezért mindig szerveroldalon kell tartani.
+
+A központi naplózás és a Discord webhookok beüzemelése a
+`LOGGING-BEUZEMELES.md` fájlban található.

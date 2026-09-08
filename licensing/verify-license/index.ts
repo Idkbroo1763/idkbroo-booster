@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { storeAndForwardEvent } from "../_shared/backend-logger.ts";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -34,14 +35,40 @@ Deno.serve(async (request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
+    const keyHash = await sha256(licenseKey);
     const { data, error } = await supabase.rpc("activate_soundlift_license", {
-      p_key_hash: await sha256(licenseKey),
+      p_key_hash: keyHash,
       p_product_code: productId,
       p_device_id: deviceId,
     });
     if (error) throw error;
-    return reply(data?.allowed ? 200 : 403, data);
-  } catch {
+    const allowed = data?.allowed === true;
+    const rejectedCode = String(data?.code ?? "UNKNOWN");
+    const isSecurity = !allowed && ["INVALID_LICENSE", "LICENSE_BLOCKED", "LICENSE_EXPIRED", "DEVICE_LIMIT"].includes(rejectedCode);
+    const eventName = allowed ? String(data.activation_event ?? "validated") : "license_rejected";
+    await storeAndForwardEvent(supabase, {
+      category: data?.license_type === "developer" && allowed ? "developer_access" : isSecurity ? "security" : "license",
+      event_name: data?.license_type === "developer" && allowed ? "developer_license_authorized" : eventName,
+      severity: allowed ? (data?.license_type === "developer" ? "warning" : "info") : "warning",
+      product_id: productId,
+      source: "backend",
+      trusted: true,
+      metadata: {
+        code: rejectedCode,
+        license_type: data?.license_type ?? "unknown",
+        license_ref: data?.internal_license_id ?? `unknown-${keyHash.slice(0, 12)}`,
+        device_ref: deviceId.slice(0, 12),
+      },
+    });
+    const publicData = { ...data };
+    delete publicData.internal_license_id;
+    delete publicData.activation_event;
+    return reply(allowed ? 200 : 403, publicData);
+  } catch (error) {
+    try {
+      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
+      await storeAndForwardEvent(supabase, { category: "license", event_name: "license_backend_error", severity: "error", source: "backend", trusted: true, metadata: { error_type: error instanceof Error ? error.name : "unknown" } });
+    } catch { /* A válasz akkor is titokmentes marad, ha a naplózás sem érhető el. */ }
     return reply(500, { allowed: false, code: "SERVER_ERROR", message: "A licencellenőrzés átmenetileg nem érhető el." });
   }
 });

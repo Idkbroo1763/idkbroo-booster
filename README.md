@@ -1,4 +1,4 @@
-# SoundLift V1.0.1
+# SoundLift V1.1.0
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -42,6 +42,16 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - külön sub-bass, fő basszus és ütős 115 Hz-es basszusszűrő
 - 25 Hz-es high-pass szűrő a felesleges mélyrezgések csökkentésére
 - elkülönített konfiguráció, amely nem törli a meglévő Equalizer APO-beállításokat
+- központi indítási, összeomlási, frissítési, licenc- és biztonsági naplózás
+- sikertelen hibajelentés automatikus újraküldése a következő indításkor
+
+## Adatvédelem és naplók
+
+A részletes helyi technikai naplók a `%LOCALAPPDATA%\SoundLift\logs\` mappában
+találhatók, és 14 nap után automatikusan törlődnek. A beállított naplószervernek
+csak a működéshez, hibakereséshez, licenchez és biztonsághoz szükséges technikai
+események kerülnek elküldésre. A kliens nem küld nyers licenckulcsot,
+Windows-felhasználónevet, teljes gépazonosítót vagy kattintási előzményt.
 
 ## Indítás
 

@@ -17,6 +17,12 @@ $source = $source.Replace("`$script:licenseMode = 'free'", "`$script:licenseMode
 $source = $source.Replace("`$script:licenseApiUrl = ''", "`$script:licenseApiUrl = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LICENSE_API_URL)'")
 $source = $source.Replace("`$script:licenseProductId = ''", "`$script:licenseProductId = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LICENSE_PRODUCT_ID)'")
 $source = $source.Replace("`$script:licenseAnonKey = ''", "`$script:licenseAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LICENSE_ANON_KEY)'")
+if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_API_URL)) {
+    $source = $source.Replace("`$script:logApiUrl = ''", "`$script:logApiUrl = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_API_URL)'")
+}
+if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_ANON_KEY)) {
+    $source = $source.Replace("`$script:logAnonKey = ''", "`$script:logAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_ANON_KEY)'")
+}
 [IO.File]::WriteAllText($temporarySource, $source, [Text.UTF8Encoding]::new($true))
 
 try {
