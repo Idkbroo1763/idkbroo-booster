@@ -115,7 +115,12 @@ function Send-SoundLiftPendingLogs {
         if ($events.Count -eq 0) { [IO.File]::Delete($script:logQueueFile); return }
         $headers = @{ 'Content-Type'='application/json'; 'User-Agent'="SoundLift/$($script:appVersion)" }
         if (-not [string]::IsNullOrWhiteSpace($script:logAnonKey)) { $headers.apikey=$script:logAnonKey; $headers.Authorization="Bearer $($script:logAnonKey)" }
-        $body = @{ events = @($events) } | ConvertTo-Json -Compress -Depth 8
+        # Windows PowerShell 5.1 a Generic.List egyetlen elemes tartalmat
+        # bizonyos esetekben objektumkent (nem JSON tombkent) szerializal.
+        # A backend mindig {"events":[...]} formatumot var, ezert a tombot
+        # explicit JSON-kent epitjuk fel egy- es tobbesemenyes kuldesnel is.
+        $eventJson = @($events | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
+        $body = '{"events":[' + ($eventJson -join ',') + ']}'
         $response = Invoke-RestMethod -Uri $script:logApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 8
         if ($response.accepted -ge 0) {
             $remaining = if ($allLines.Count -gt $take) { @($allLines[$take..($allLines.Count - 1)]) } else { @() }
