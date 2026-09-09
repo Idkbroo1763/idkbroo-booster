@@ -1,6 +1,8 @@
 ﻿$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+# Windows PowerShell / PS2EXE does not automatically load the DPAPI assembly.
+Add-Type -AssemblyName System.Security
 
 # PS2EXE alatt a $PSScriptRoot üres lehet. Ilyenkor az EXE saját mappáját
 # használjuk minden alkalmazáshoz tartozó fájl és parancsikon alapjaként.
@@ -15,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.2.0'
+$script:appVersion = '1.2.1'
 $script:onboardingCompleted = $false
 # A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
 # vásárlói build készítésekor biztonságosan behelyettesíti.
@@ -311,7 +313,7 @@ function Confirm-DiscordAccountLink {
             return $true
         }
         Write-SoundLiftLog -Category security -EventName 'discord_link_check_failed' -Severity error -ErrorRecord $_
-        [System.Windows.MessageBox]::Show('A Discord-összekapcsolás most nem ellenőrizhető. Első használatkor internetkapcsolat szükséges.', 'SoundLift – Discord ellenőrzés', 'OK', 'Error') | Out-Null
+        [System.Windows.MessageBox]::Show('A Discord-összekapcsolás ellenőrzése sikertelen. Helyi alkalmazáshiba vagy szerverkapcsolati hiba is okozhatja. A részletek a SoundLift logs mappájában találhatók.', 'SoundLift – Discord ellenőrzés', 'OK', 'Error') | Out-Null
         return $false
     }
 
