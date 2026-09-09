@@ -15,7 +15,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.1.0'
+$script:appVersion = '1.2.0'
 $script:onboardingCompleted = $false
 # A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
 # vásárlói build készítésekor biztonságosan behelyettesíti.
@@ -28,6 +28,8 @@ $script:licenseAnonKey = ''
 # soha nem kerülhet a kliensbe.
 $script:logApiUrl = ''
 $script:logAnonKey = ''
+$script:discordLinkRequired = $false
+$script:discordLinkGraceHours = 72
 $script:loggerInitialized = $false
 $script:startupCompleted = $false
 
@@ -60,6 +62,12 @@ function Initialize-SoundLiftLogger {
             Where-Object LastWriteTimeUtc -lt ([DateTime]::UtcNow.AddDays(-14)) | Remove-Item -Force -ErrorAction SilentlyContinue
         $script:loggerInitialized = $true
     } catch { $script:loggerInitialized = $false }
+}
+
+function Get-SoundLiftSupportId {
+    Initialize-SoundLiftLogger
+    if ([string]::IsNullOrWhiteSpace($script:installationId)) { return 'SL-ISMERETLEN' }
+    return 'SL-' + $script:installationId.Replace('-', '').Substring(0, 8).ToUpperInvariant()
 }
 
 function Add-SoundLiftPendingEvent([object]$event) {
@@ -120,6 +128,7 @@ function Send-SoundLiftPendingLogs {
         # A backend mindig {"events":[...]} formatumot var, ezert a tombot
         # explicit JSON-kent epitjuk fel egy- es tobbesemenyes kuldesnel is.
         $eventJson = @($events | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
+        $headers['x-soundlift-installation-proof'] = Get-InstallationProof
         $body = '{"events":[' + ($eventJson -join ',') + ']}'
         $response = Invoke-RestMethod -Uri $script:logApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 8
         if ($response.accepted -ge 0) {
@@ -244,6 +253,106 @@ function Unprotect-LicenseState([string]$value) {
     return ([Text.Encoding]::UTF8.GetString($plain) | ConvertFrom-Json)
 }
 
+function Get-InstallationProof {
+    $path = Join-Path $script:logRoot 'installation-proof.dat'
+    if (Test-Path $path) { return [string](Unprotect-LicenseState ([IO.File]::ReadAllText($path))).proof }
+    $bytes = New-Object byte[] 32
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+    $proof = ([BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
+    [IO.File]::WriteAllText($path, (Protect-LicenseState @{proof=$proof}), [Text.Encoding]::UTF8)
+    return $proof
+}
+
+function Get-SoundLiftFunctionUrl([string]$functionName) {
+    if ([string]::IsNullOrWhiteSpace($script:logApiUrl)) { throw 'A SoundLift backend nincs beállítva.' }
+    return [Regex]::Replace($script:logApiUrl.TrimEnd('/'), '/[^/]+$', "/$functionName")
+}
+
+function Invoke-DiscordLinkApi([string]$functionName) {
+    $headers = @{ 'Content-Type'='application/json'; 'User-Agent'="SoundLift/$($script:appVersion)" }
+    if (-not [string]::IsNullOrWhiteSpace($script:logAnonKey)) {
+        $headers.apikey = $script:logAnonKey
+        $headers.Authorization = "Bearer $($script:logAnonKey)"
+    }
+    $body = @{ installation_id=$script:installationId; installation_proof=(Get-InstallationProof) } | ConvertTo-Json -Compress
+    return Invoke-RestMethod -Uri (Get-SoundLiftFunctionUrl $functionName) -Method Post -Headers $headers -Body $body -TimeoutSec 12
+}
+
+function Get-DiscordLinkCache {
+    $path = Join-Path $script:logRoot 'discord-link.dat'
+    if (-not (Test-Path $path)) { return $null }
+    try { return Unprotect-LicenseState ([IO.File]::ReadAllText($path)) } catch { return $null }
+}
+
+function Save-DiscordLinkCache([string]$supportId) {
+    try {
+        $state = [PSCustomObject]@{ linked=$true; installationId=$script:installationId; supportId=$supportId; lastVerifiedUtc=[DateTime]::UtcNow.ToString('o') }
+        [IO.File]::WriteAllText((Join-Path $script:logRoot 'discord-link.dat'), (Protect-LicenseState $state), [Text.Encoding]::UTF8)
+    } catch { }
+}
+
+function Test-DiscordLinkOfflineGrace {
+    $cached = Get-DiscordLinkCache
+    if (-not $cached -or $cached.linked -ne $true -or $cached.installationId -ne $script:installationId -or -not $cached.lastVerifiedUtc) { return $false }
+    try { $age = ([DateTime]::UtcNow - [DateTime]::Parse([string]$cached.lastVerifiedUtc).ToUniversalTime()).TotalHours; return ($age -ge 0 -and $age -le $script:discordLinkGraceHours) } catch { return $false }
+}
+
+function Confirm-DiscordAccountLink {
+    if (-not $script:discordLinkRequired) { return $true }
+    try {
+        $status = Invoke-DiscordLinkApi 'discord-link-status'
+        if ($status.linked -eq $true) { Save-DiscordLinkCache ([string]$status.support_id); return $true }
+        $cachePath = Join-Path $script:logRoot 'discord-link.dat'
+        if (Test-Path $cachePath) { [IO.File]::Delete($cachePath) }
+    } catch {
+        if ((-not $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ge 500) -and (Test-DiscordLinkOfflineGrace)) {
+            Write-SoundLiftLog -Category security -EventName 'discord_link_offline_grace_used' -Severity warning -Data @{ grace_hours=$script:discordLinkGraceHours }
+            return $true
+        }
+        Write-SoundLiftLog -Category security -EventName 'discord_link_check_failed' -Severity error -ErrorRecord $_
+        [System.Windows.MessageBox]::Show('A Discord-összekapcsolás most nem ellenőrizhető. Első használatkor internetkapcsolat szükséges.', 'SoundLift – Discord ellenőrzés', 'OK', 'Error') | Out-Null
+        return $false
+    }
+
+    Write-SoundLiftLog -Category security -EventName 'discord_link_required' -Severity warning
+    $dialog = [Windows.Window]::new(); $dialog.Title='SoundLift – Discord összekapcsolás'; $dialog.Width=610; $dialog.Height=430
+    $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterScreen'; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+    $root=[Windows.Controls.StackPanel]::new(); $root.Margin=[Windows.Thickness]::new(30)
+    $title=[Windows.Controls.TextBlock]::new(); $title.Text='Discord-fiók összekapcsolása'; $title.FontSize=24; $title.FontWeight='Bold'
+    $info=[Windows.Controls.TextBlock]::new(); $info.Text="A SoundLift használatához hitelesítened kell a Discord-fiókodat.`nA kapcsolat a frissítések után is megmarad."; $info.TextWrapping='Wrap'; $info.Margin=[Windows.Thickness]::new(0,14,0,12); $info.Foreground='#CBD5E1'
+    $privacy=[Windows.Controls.TextBlock]::new(); $privacy.Text='A rendszer a Discord felhasználói azonosítódat és megjelenített nevedet tárolja a telepítés azonosításához, támogatáshoz és biztonsági naplózáshoz. Jelszót, üzeneteket és szerverlistát nem olvas.'; $privacy.TextWrapping='Wrap'; $privacy.Margin=[Windows.Thickness]::new(0,0,0,18); $privacy.Foreground='#94A3B8'
+    $statusText=[Windows.Controls.TextBlock]::new(); $statusText.Text='Kattints az összekapcsolásra, engedélyezd a Discord-oldalon, majd térj vissza ide.'; $statusText.TextWrapping='Wrap'; $statusText.Margin=[Windows.Thickness]::new(0,0,0,18); $statusText.Foreground='#FBBF24'
+    $connect=[Windows.Controls.Button]::new(); $connect.Content='Discord összekapcsolása'; $connect.Height=44; $connect.Margin=[Windows.Thickness]::new(0,0,0,10)
+    $verify=[Windows.Controls.Button]::new(); $verify.Content='Összekapcsolás ellenőrzése'; $verify.Height=44; $verify.Margin=[Windows.Thickness]::new(0,0,0,10)
+    $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Kilépés'; $cancel.Height=38
+    $result=@{ linked=$false }
+    $connect.Add_Click({
+        try {
+            $created=Invoke-DiscordLinkApi 'discord-link-create'
+            if ($created.linked -eq $true) { Save-DiscordLinkCache ([string]$created.support_id); $result.linked=$true; $dialog.Close(); return }
+            if ([string]::IsNullOrWhiteSpace([string]$created.authorization_url)) { throw 'A backend nem adott engedélyezési linket.' }
+            $authUri = [Uri]([string]$created.authorization_url)
+            if ($authUri.Scheme -ne 'https' -or $authUri.Host -ne 'discord.com' -or $authUri.AbsolutePath -ne '/oauth2/authorize') { throw 'Érvénytelen Discord-link.' }
+            Start-Process $authUri.AbsoluteUri
+            $statusText.Text='A Discord-oldal megnyílt. Engedélyezés után kattints az ellenőrzés gombra.'
+        } catch { $statusText.Text="Az összekapcsolás nem indítható: $($_.Exception.Message)" }
+    }.GetNewClosure())
+    $verify.Add_Click({
+        try {
+            $checked=Invoke-DiscordLinkApi 'discord-link-status'
+            if ($checked.linked -eq $true) { Save-DiscordLinkCache ([string]$checked.support_id); $result.linked=$true; $dialog.Close() }
+            else { $statusText.Text='Még nincs kész az összekapcsolás. Engedélyezd a Discord-oldalon, majd próbáld újra.' }
+        } catch { $statusText.Text="Az ellenőrzés sikertelen: $($_.Exception.Message)" }
+    }.GetNewClosure())
+    $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
+    foreach ($control in @($title,$info,$privacy,$statusText,$connect,$verify,$cancel)) { [void]$root.Children.Add($control) }
+    $dialog.Content=$root; [void]$dialog.ShowDialog()
+    if ($result.linked) { Write-SoundLiftLog -Category security -EventName 'discord_link_succeeded'; return $true }
+    Write-SoundLiftLog -Category security -EventName 'discord_link_cancelled' -Severity warning
+    return $false
+}
+
 function Get-SavedLicenseState {
     $path = Join-Path $env:APPDATA 'SoundLift\license.dat'
     if (-not (Test-Path $path)) { return $null }
@@ -266,7 +375,7 @@ function Invoke-LicenseApi([string]$licenseKey) {
         $headers['apikey'] = $script:licenseAnonKey
         $headers['Authorization'] = "Bearer $($script:licenseAnonKey)"
     }
-    $body = @{ license_key = $licenseKey.Trim(); product_id = $script:licenseProductId; device_id = Get-LicenseDeviceId } | ConvertTo-Json -Compress
+    $body = @{ license_key = $licenseKey.Trim(); product_id = $script:licenseProductId; device_id = Get-LicenseDeviceId; installation_id = $script:installationId; installation_proof=(Get-InstallationProof) } | ConvertTo-Json -Compress
     try {
         return Invoke-RestMethod -Uri $script:licenseApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 12
     } catch {
@@ -354,9 +463,16 @@ function Get-ApoConfigDirectory {
     return $candidates | Select-Object -First 1
 }
 
+# Authenticate before creating controls, tray actions, timers or hotkeys.
+if (-not (Confirm-DiscordAccountLink)) {
+    Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity warning -Data @{stage='discord_link_gate'}
+    Send-SoundLiftPendingLogs
+    return
+}
+
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.1.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.2.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -448,7 +564,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.1.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.2.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -492,7 +608,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.1.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -900,6 +1016,7 @@ function Get-DiagnosticsReport {
     $lines.Add(('=' * 48))
     $lines.Add("Időpont: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
     $lines.Add("Alkalmazásverzió: $script:appVersion")
+    $lines.Add("Támogatási ID: $(Get-SoundLiftSupportId)")
     $lines.Add("Windows: $([Environment]::OSVersion.VersionString)")
     $lines.Add("Aktív hangkimenet: $activeOutput")
     $lines.Add('')
@@ -1109,6 +1226,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.2.0 – DISCORD-FIÓK ÖSSZEKAPCSOLÁS
+• Kötelező, hitelesített Discord OAuth-kapcsolat az alkalmazás használatához.
+• Frissítés után is megmaradó kapcsolat és 72 órás védelem rövid backend-kiesésre.
+• A logokban rövid támogatási ID és a hitelesített Discord-felhasználó jelenik meg.
+• Egyszer használható, 10 perc után lejáró összekapcsolási munkamenetek.
+
 V1.1.0 – KÖZPONTI NAPLÓZÁS
 • Helyi technikai naplók és következő indításkor újrapróbált hibajelentések.
 • Indítási, összeomlási, frissítési, licenc- és biztonsági események.
@@ -1393,7 +1516,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.1.0'
+$script:trayIcon.Text = 'SoundLift V1.2.0'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

@@ -6,7 +6,7 @@ $outputDirectory = Join-Path $projectRoot 'dist-custom'
 $outputExe = Join-Path $outputDirectory 'SoundLift Custom.exe'
 $iconFile = Join-Path $projectRoot 'SoundLift.ico'
 
-foreach ($name in @('SOUNDLIFT_LICENSE_API_URL','SOUNDLIFT_LICENSE_PRODUCT_ID','SOUNDLIFT_LICENSE_ANON_KEY')) {
+foreach ($name in @('SOUNDLIFT_LICENSE_API_URL','SOUNDLIFT_LICENSE_PRODUCT_ID','SOUNDLIFT_LICENSE_ANON_KEY','SOUNDLIFT_LOG_API_URL','SOUNDLIFT_LOG_ANON_KEY')) {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Hiányzó környezeti változó: $name" }
 }
 
@@ -23,6 +23,7 @@ if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_API_URL)) {
 if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_ANON_KEY)) {
     $source = $source.Replace("`$script:logAnonKey = ''", "`$script:logAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_ANON_KEY)'")
 }
+$source = $source.Replace("`$script:discordLinkRequired = `$false", "`$script:discordLinkRequired = `$true")
 [IO.File]::WriteAllText($temporarySource, $source, [Text.UTF8Encoding]::new($true))
 
 try {

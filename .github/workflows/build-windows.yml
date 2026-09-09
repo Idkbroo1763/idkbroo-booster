@@ -1,5 +1,5 @@
 name: Build Windows application
-run-name: SoundLift V1.1.0 letöltése
+run-name: SoundLift V1.2.0 letöltése
 
 on:
   workflow_dispatch:
@@ -19,6 +19,10 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+
+      - name: Validate Discord gate
+        shell: powershell
+        run: .\tests\discord-link.ps1
 
       - name: Build SoundLift.exe
         shell: powershell
@@ -47,7 +51,7 @@ jobs:
       - name: Upload Windows files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.1.0 letöltése
+          name: SoundLift V1.2.0 letöltése
           path: |
             dist/SoundLift.exe
             dist/SoundLift Setup.exe

@@ -1,3 +1,4 @@
+import { authenticateInstallation } from "../_shared/installation-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { storeAndForwardEvent, type BackendLogEvent } from "../_shared/backend-logger.ts";
 
@@ -10,6 +11,7 @@ const clientEvents = new Set([
   "update_check_started", "update_check_succeeded", "update_check_failed", "update_available", "download_page_opened", "version_changed",
   "activation_cancelled", "activation_succeeded", "validation_succeeded", "validation_failed", "validation_unavailable", "offline_grace_used",
   "license_rejected", "developer_license_used",
+  "discord_link_required", "discord_link_succeeded", "discord_link_cancelled", "discord_link_check_failed", "discord_link_offline_grace_used",
 ]);
 
 function reply(status: number, body: Record<string, unknown>) {
@@ -43,6 +45,10 @@ Deno.serve(async (request) => {
 
     const installationId = clean(body.events[0]?.installation_id, 36);
     if (!uuidPattern.test(installationId)) return reply(400, { error: "INVALID_INSTALLATION" });
+    const supportId = `SL-${installationId.replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+    const ownsInstallation = await authenticateInstallation(supabase, installationId, request.headers.get("x-soundlift-installation-proof") ?? "");
+    const { data: claimedUser } = await supabase.from("soundlift_installation_links").select("discord_user_id,discord_username,discord_global_name").eq("installation_id", installationId).is("revoked_at", null).maybeSingle();
+    const linkedUser = ownsInstallation ? claimedUser : null;
     const since = new Date(Date.now() - 60_000).toISOString();
     const { count } = await supabase.from("app_log_events").select("id", { count: "exact", head: true }).eq("installation_id", installationId).gte("received_at", since);
     if ((count ?? 0) >= 100) return reply(429, { error: "RATE_LIMITED" });
@@ -68,7 +74,12 @@ Deno.serve(async (request) => {
         product_id: clean(raw.product_id, 64),
         source: "client",
         trusted: false,
-        metadata: cleanMetadata(raw.data),
+        metadata: {
+          support_id: supportId,
+          discord_user: linkedUser?.discord_user_id ? `<@${linkedUser.discord_user_id}>` : "nincs összekapcsolva",
+          discord_name: clean(linkedUser?.discord_global_name || linkedUser?.discord_username || "ismeretlen", 80),
+          ...cleanMetadata(raw.data),
+        },
       };
       await storeAndForwardEvent(supabase, event);
       accepted++;

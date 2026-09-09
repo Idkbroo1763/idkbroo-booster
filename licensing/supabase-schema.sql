@@ -60,6 +60,34 @@ create table if not exists public.app_log_events (
   discord_forwarded boolean not null default false
 );
 
+-- Hitelesitett Discord-fiok hozzarendelese egy SoundLift-telepiteshez.
+-- A teljes installation_id csak a backendben marad; Discordon rovid support ID jelenik meg.
+create table if not exists public.soundlift_installation_links (
+  installation_id uuid primary key,
+  discord_user_id text not null check (discord_user_id ~ '^[0-9]{15,25}$'),
+  discord_username text,
+  discord_global_name text,
+  linked_at timestamptz not null default now(),
+  last_verified_at timestamptz not null default now(),
+  revoked_at timestamptz
+);
+
+create index if not exists soundlift_installation_links_discord_idx
+  on public.soundlift_installation_links(discord_user_id);
+
+-- Egyszer hasznalhato, rovid eletu OAuth allapotok. Nyers state soha nem tarolodik.
+create table if not exists public.soundlift_link_sessions (
+  id uuid primary key default gen_random_uuid(),
+  installation_id uuid not null,
+  state_hash text not null unique check (length(state_hash) = 64),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at timestamptz
+);
+
+create index if not exists soundlift_link_sessions_installation_idx
+  on public.soundlift_link_sessions(installation_id, created_at desc);
+
 create index if not exists app_log_events_installation_received_idx
   on public.app_log_events(installation_id, received_at desc);
 create index if not exists app_log_events_category_received_idx
@@ -69,8 +97,11 @@ alter table public.license_products enable row level security;
 alter table public.licenses enable row level security;
 alter table public.license_events enable row level security;
 alter table public.app_log_events enable row level security;
+alter table public.soundlift_installation_links enable row level security;
+alter table public.soundlift_link_sessions enable row level security;
 
 revoke all on public.license_products, public.licenses, public.license_events, public.app_log_events from anon, authenticated;
+revoke all on public.soundlift_installation_links, public.soundlift_link_sessions from anon, authenticated;
 
 create or replace function public.activate_soundlift_license(p_key_hash text, p_product_code text, p_device_id text)
 returns jsonb
@@ -141,3 +172,31 @@ grant execute on function public.detach_soundlift_license(uuid,text) to service_
 
 -- Gép leválasztásához az admin-license-action Edge Functiont használd, hogy a
 -- művelet az adatbázisban és a Discordon is biztosan naplózva legyen.
+
+create table if not exists public.soundlift_installation_credentials (
+ installation_id uuid primary key,
+ proof_hash text not null check (proof_hash ~ '^[a-f0-9]{64}$'),
+ created_at timestamptz not null default now()
+);
+alter table public.soundlift_installation_credentials enable row level security;
+revoke all on public.soundlift_installation_credentials from public, anon, authenticated;
+revoke all on public.soundlift_installation_links, public.soundlift_link_sessions from public;
+
+create or replace function public.complete_soundlift_discord_link(
+ p_session_id uuid, p_discord_id text, p_username text, p_global_name text
+) returns boolean language plpgsql security definer set search_path=public as $$
+declare s public.soundlift_link_sessions%rowtype;
+begin
+ select * into s from public.soundlift_link_sessions where id=p_session_id for update;
+ if not found or s.used_at is not null or s.expires_at <= now() then return false; end if;
+ if p_discord_id !~ '^[0-9]{15,25}$' then return false; end if;
+ -- A second pending OAuth session cannot replace an established identity.
+ insert into public.soundlift_installation_links(installation_id,discord_user_id,discord_username,discord_global_name)
+ values(s.installation_id,p_discord_id,left(p_username,80),left(p_global_name,80))
+ on conflict(installation_id) do nothing;
+ update public.soundlift_link_sessions set used_at=now() where installation_id=s.installation_id and used_at is null;
+ return exists(select 1 from public.soundlift_installation_links where installation_id=s.installation_id and discord_user_id=p_discord_id and revoked_at is null);
+end;
+$$;
+revoke all on function public.complete_soundlift_discord_link(uuid,text,text,text) from public,anon,authenticated;
+grant execute on function public.complete_soundlift_discord_link(uuid,text,text,text) to service_role;

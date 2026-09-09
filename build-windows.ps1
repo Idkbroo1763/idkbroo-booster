@@ -14,6 +14,10 @@ if (-not (Get-Module -ListAvailable -Name ps2exe | Where-Object Version -eq '1.0
 Import-Module ps2exe -RequiredVersion 1.0.18
 
 function ConvertTo-SingleQuotedLiteral([string]$value) { return $value.Replace("'", "''") }
+$requiredLoggingVariables = @('SOUNDLIFT_LOG_API_URL','SOUNDLIFT_LOG_ANON_KEY')
+foreach ($name in $requiredLoggingVariables) {
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Hiányzó kötelező build változó: $name" }
+}
 $source = [IO.File]::ReadAllText($sourceScript)
 if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_API_URL)) {
     $source = $source.Replace("`$script:logApiUrl = ''", "`$script:logApiUrl = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_API_URL)'")
@@ -21,6 +25,7 @@ if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_API_URL)) {
 if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_ANON_KEY)) {
     $source = $source.Replace("`$script:logAnonKey = ''", "`$script:logAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_ANON_KEY)'")
 }
+$source = $source.Replace("`$script:discordLinkRequired = `$false", "`$script:discordLinkRequired = `$true")
 [IO.File]::WriteAllText($temporarySource, $source, [Text.UTF8Encoding]::new($true))
 
 # A minimális, dokumentált paraméterkészletet használjuk. Ez elkerüli, hogy a

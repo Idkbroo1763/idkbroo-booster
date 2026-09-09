@@ -1,4 +1,4 @@
-# SoundLift V1.1.0
+# SoundLift V1.2.0
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -44,14 +44,18 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - elkülönített konfiguráció, amely nem törli a meglévő Equalizer APO-beállításokat
 - központi indítási, összeomlási, frissítési, licenc- és biztonsági naplózás
 - sikertelen hibajelentés automatikus újraküldése a következő indításkor
+- kötelező, hitelesített Discord OAuth-összekapcsolás, amely frissítés után is megmarad
+- a Discord-fiókhoz kapcsolt támogatási azonosító a gyorsabb hibakereséshez
 
 ## Adatvédelem és naplók
 
 A részletes helyi technikai naplók a `%LOCALAPPDATA%\SoundLift\logs\` mappában
 találhatók, és 14 nap után automatikusan törlődnek. A beállított naplószervernek
 csak a működéshez, hibakereséshez, licenchez és biztonsághoz szükséges technikai
-események kerülnek elküldésre. A kliens nem küld nyers licenckulcsot,
-Windows-felhasználónevet, teljes gépazonosítót vagy kattintási előzményt.
+események kerülnek elküldésre. A kötelező összekapcsolás a Discord felhasználói
+azonosítót és a megjelenített nevet a Supabase backendben tárolja. A kliens nem
+küld nyers licenckulcsot, Windows-felhasználónevet, teljes gépazonosítót,
+Discord-üzeneteket, szerverlistát vagy kattintási előzményt.
 
 ## Indítás
 
