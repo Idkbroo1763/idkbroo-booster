@@ -18,6 +18,16 @@ foreach($case in @(
 }
 $gate=$source.IndexOf('if (-not (Confirm-DiscordAccountLink))')
 if($gate -lt 0 -or $gate -gt $source.IndexOf('$xaml =')) { throw 'Discord gate must precede UI creation' }
+$buildSource = Get-Content "$PSScriptRoot/../build-windows.ps1" -Raw
+foreach ($requiredUniversalBuildFragment in @(
+ "`$script:licenseMode = 'universal'",
+ "`$script:licenseProductId = 'soundlift-custom'",
+ '/verify-license',
+ 'SOUNDLIFT_LOG_ANON_KEY'
+)) {
+ if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
+}
+if ($source -notmatch "`$script:appVersion = '1\.3\.0'") { throw 'Application version was not updated to 1.3.0' }
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest',
  "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
@@ -27,6 +37,9 @@ foreach ($requiredUpdaterFragment in @(
  "`$statusText.Text = 'Telep",
  "`$installButton.Content = '",
  'CopySupportIdButton',
+ 'LicenseStatusText',
+ 'LicenseButton',
+ "`$script:licenseMode -notin @('universal','custom')",
  'RollbackButton',
  "`$script:currentLicenseType -ne 'developer'",
  "`$RollbackButton.Visibility = 'Collapsed'"
@@ -46,7 +59,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.2.2'
+ $script:appVersion='1.3.0'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

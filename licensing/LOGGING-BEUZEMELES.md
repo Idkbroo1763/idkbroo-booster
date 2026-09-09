@@ -144,6 +144,11 @@ Egy már kiadott régebbi EXE csak akkor kapja meg ezt a működést, ha tartalm
 az automatikus frissítő kódját; a V1.2.2 előtti EXE-ket egyszer kézzel kell
 frissíteni.
 
+A V1.3.0-tól a kiadott telepítő univerzális. Az ingyenes felhasználó ugyanabban
+az alkalmazásban aktiválhat `customer` vagy `developer` licencet, és a DPAPI-val
+védett licencállapot normál frissítéskor megmarad. Külön Custom EXE-t nem kell
+fordítani vagy elküldeni; mindenki ugyanazt a GitHub Release telepítőt használja.
+
 Fejlesztői licenc használatakor az automatikus frissítés a futó, működő EXE-ről
 a telepítési mappa `rollback` alkönyvtárában SHA-256-tal ellenőrzött mentést
 készít. Normál és ingyenes kiadásnál nem készül visszaállítási EXE. Az **Előző verzió

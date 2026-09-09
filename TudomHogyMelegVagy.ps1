@@ -17,10 +17,10 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.2.2'
+$script:appVersion = '1.3.0'
 $script:onboardingCompleted = $false
-# A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
-# vásárlói build készítésekor biztonságosan behelyettesíti.
+# A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
+# EXE-ben aktiválható customer vagy developer licenc.
 $script:licenseMode = 'free'
 $script:currentLicenseType = 'free'
 $script:licenseApiUrl = ''
@@ -369,9 +369,15 @@ function Save-LicenseState([string]$licenseKey, [string]$licenseType, [string]$a
     [IO.File]::WriteAllText((Join-Path $directory 'license.dat'), (Protect-LicenseState $state), [Text.Encoding]::UTF8)
 }
 
+function Remove-LicenseState {
+    $path = Join-Path $env:APPDATA 'SoundLift\license.dat'
+    if (Test-Path $path) { Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue }
+    $script:currentLicenseType = 'free'
+}
+
 function Invoke-LicenseApi([string]$licenseKey) {
     if ([string]::IsNullOrWhiteSpace($script:licenseApiUrl) -or [string]::IsNullOrWhiteSpace($script:licenseProductId)) {
-        throw 'A vásárlói build licenckiszolgálója nincs beállítva.'
+        throw 'A SoundLift licenckiszolgálója nincs beállítva.'
     }
     $headers = @{ 'Content-Type' = 'application/json'; 'User-Agent' = "SoundLift/$($script:appVersion)" }
     if (-not [string]::IsNullOrWhiteSpace($script:licenseAnonKey)) {
@@ -416,20 +422,25 @@ function Show-LicenseKeyDialog {
     $dialog.Content = $root; $dialog.ShowDialog() | Out-Null; return $result.key
 }
 
-function Confirm-CustomLicense {
-    if ($script:licenseMode -ne 'custom') { return $true }
+function Confirm-SoundLiftLicense {
+    param([switch]$PromptForKey)
+    if ($script:licenseMode -notin @('universal','custom')) { return $true }
     $saved = Get-SavedLicenseState
-    $key = if ($saved -and $saved.key) { [string]$saved.key } else { Show-LicenseKeyDialog }
+    $key = if ($PromptForKey) { Show-LicenseKeyDialog } elseif ($saved -and $saved.key) { [string]$saved.key } else { $null }
     if ([string]::IsNullOrWhiteSpace($key)) {
-        Write-SoundLiftLog -Category license -EventName 'activation_cancelled' -Severity warning
-        return $false
+        if ($PromptForKey) {
+            Write-SoundLiftLog -Category license -EventName 'activation_cancelled' -Severity warning
+            return $false
+        }
+        $script:currentLicenseType = 'free'
+        return (-not $PromptForKey -and $script:licenseMode -eq 'universal')
     }
     try {
         $response = Invoke-LicenseApi $key
         if ($response.allowed -eq $true) {
             $script:currentLicenseType = [string]$response.license_type
             Save-LicenseState $key $script:currentLicenseType ([string]$response.authorization_id)
-            $eventName = if ($saved -and $saved.key) { 'validation_succeeded' } else { 'activation_succeeded' }
+            $eventName = if (-not $PromptForKey -and $saved -and $saved.key) { 'validation_succeeded' } else { 'activation_succeeded' }
             Write-SoundLiftLog -Category license -EventName $eventName -Data @{ license_type=$response.license_type; code=$response.code }
             if ([string]$response.license_type -eq 'developer') {
                 Write-SoundLiftLog -Category developer_access -EventName 'developer_license_used' -Severity warning -Data @{ authorization_id=$response.authorization_id; code=$response.code }
@@ -441,11 +452,12 @@ function Confirm-CustomLicense {
         if ($failureCode -in @('INVALID_LICENSE','LICENSE_BLOCKED','LICENSE_EXPIRED','DEVICE_LIMIT')) {
             Write-SoundLiftLog -Category security -EventName 'license_rejected' -Severity warning -Data @{ code=$failureCode }
         }
+        if (-not $PromptForKey) { Remove-LicenseState }
         [System.Windows.MessageBox]::Show(([string]$response.message), 'A licenc nem használható', 'OK', 'Warning') | Out-Null
-        return $false
+        return (-not $PromptForKey -and $script:licenseMode -eq 'universal')
     } catch {
         # Rövid internetkimaradásnál 72 órás, DPAPI-val védett türelmi idő.
-        if ($saved -and $saved.lastSuccessUtc) {
+        if (-not $PromptForKey -and $saved -and $saved.lastSuccessUtc) {
             try {
                 if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) {
                     $script:currentLicenseType = if ($saved.licenseType) { [string]$saved.licenseType } else { 'customer' }
@@ -455,8 +467,11 @@ function Confirm-CustomLicense {
             } catch { }
         }
         Write-SoundLiftLog -Category license -EventName 'validation_unavailable' -Severity error -ErrorRecord $_
-        [System.Windows.MessageBox]::Show("A licenc most nem ellenőrizhető, és nincs érvényes offline időszak.`n`n$($_.Exception.Message)", 'Licencellenőrzési hiba', 'OK', 'Error') | Out-Null
-        return $false
+        if ($PromptForKey -or $script:licenseMode -eq 'custom') {
+            [System.Windows.MessageBox]::Show("A licenc most nem ellenőrizhető, és nincs érvényes offline időszak.`n`n$($_.Exception.Message)", 'Licencellenőrzési hiba', 'OK', 'Error') | Out-Null
+        }
+        if (-not $PromptForKey) { $script:currentLicenseType = 'free' }
+        return (-not $PromptForKey -and $script:licenseMode -eq 'universal')
     }
 }
 
@@ -477,7 +492,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.2.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -569,7 +584,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.2.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -616,6 +631,8 @@ $xaml = @'
             <TextBlock Name="VersionText" Text="Telepített verzió: 1.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
+            <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
+            <Button Name="LicenseButton" Content="🔑  Licenc aktiválása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -753,7 +770,7 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 $SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
@@ -1228,6 +1245,9 @@ $RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
 $RollbackButton.Add_Click({ Restore-SoundLiftPreviousVersion })
 
 function Update-DeveloperControls {
+    $displayType = switch ($script:currentLicenseType) { 'developer' { 'fejlesztői' } 'customer' { 'vásárlói' } default { 'ingyenes' } }
+    $LicenseStatusText.Text = "Licenc: $displayType"
+    $LicenseButton.Content = if ($script:currentLicenseType -eq 'free') { '🔑  Licenc aktiválása' } else { '🔑  Licenc cseréje' }
     if ($script:currentLicenseType -eq 'developer') {
         $RollbackButton.Visibility = 'Visible'
         $RollbackButton.IsEnabled = $null -ne (Get-SoundLiftRollbackState)
@@ -1235,6 +1255,15 @@ function Update-DeveloperControls {
         $RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
     }
 }
+
+$LicenseButton.Add_Click({
+    if (Confirm-SoundLiftLicense -PromptForKey) {
+        Update-DeveloperControls
+        if ($script:currentLicenseType -ne 'free') {
+            $StatusText.Text = "OK - $($LicenseStatusText.Text) aktiválva"
+        }
+    }
+})
 
 function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
     $temporaryDirectory = $null
@@ -1354,6 +1383,11 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.0 – EGYSÉGES ALKALMAZÁS ÉS LICENC
+• Ugyanaz a telepítő használható ingyenes, vásárlói és fejlesztői módban.
+• A licenc az alkalmazásban aktiválható, és frissítés után is megmarad.
+• A fejlesztői visszaállítás továbbra is kizárólag developer licenccel érhető el.
+
 V1.2.2 – AUTOMATIKUS FRISSÍTÉS
 • Indításkor automatikusan ellenőrzi a legújabb nyilvános kiadást.
 • Egy gombnyomással letölti és elindítja az új telepítőt.
@@ -1652,7 +1686,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.2.2'
+$script:trayIcon.Text = 'SoundLift V1.3.0'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -1696,7 +1730,7 @@ $window.Add_ContentRendered({
     if ($script:startupUiHandled) { return }
     $script:startupUiHandled = $true
     try {
-        if (-not (Confirm-CustomLicense)) {
+        if (-not (Confirm-SoundLiftLicense)) {
             Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity warning -Data @{ stage='license_gate' }
             Send-SoundLiftPendingLogs
             $script:reallyExit = $true; $window.Close(); return

@@ -1,4 +1,4 @@
-# SoundLift V1.2.2
+# SoundLift V1.3.0
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -46,6 +46,9 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - sikertelen hibajelentés automatikus újraküldése a következő indításkor
 - kötelező, hitelesített Discord OAuth-összekapcsolás, amely frissítés után is megmarad
 - a Discord-fiókhoz kapcsolt támogatási azonosító a gyorsabb hibakereséshez
+- egyetlen univerzális telepítő ingyenes, vásárlói és fejlesztői módhoz
+- alkalmazáson belüli licencaktiválás, amely a frissítések után is megmarad
+- kizárólag developer licenccel elérhető, ellenőrzött verzió-visszaállítás
 
 ## Adatvédelem és naplók
 

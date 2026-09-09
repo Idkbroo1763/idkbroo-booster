@@ -1,7 +1,9 @@
-# SoundLift vásárlói licencrendszer – előkészítés
+# SoundLift egységes licencrendszer – előkészítés
 
-A nyilvános SoundLift build továbbra is `free` módban működik. A licenc csak a
-`build-custom-windows.ps1` használatával készített vásárlói EXE-ben kapcsol be.
+A V1.3.0-tól egyetlen univerzális SoundLift telepítő készül. Az alkalmazás
+alapból ingyenes módban indul, a vásárló pedig közvetlenül a felületen írhatja
+be az `SL-...` kulcsát. Ugyanez az EXE kezeli a `customer` és `developer`
+jogosultságot, ezért frissítésenként nem kell külön vásárlói buildet készíteni.
 
 ## Egyszeri Supabase-beállítás
 
@@ -59,18 +61,14 @@ Javasolt szabályok:
 - tesztelés után állítsd `revoked` állapotba;
 - soha ne kerüljön univerzális mesterkulcs az alkalmazásba.
 
-## Vásárlói build
+## Univerzális build
 
-Állítsd be a három környezeti változót, majd futtasd a buildet:
+A GitHub Actions ugyanabból a `SOUNDLIFT_LOG_API_URL` és publikus
+`SOUNDLIFT_LOG_ANON_KEY` beállításból konfigurálja a naplózást és a
+licencellenőrzést. Az elkészült `SoundLift Setup.exe` mindenkinek ugyanaz.
 
-```powershell
-$env:SOUNDLIFT_LICENSE_API_URL='https://PROJECT.supabase.co/functions/v1/verify-license'
-$env:SOUNDLIFT_LICENSE_PRODUCT_ID='soundlift-custom'
-$env:SOUNDLIFT_LICENSE_ANON_KEY='A_SUPABASE_ANON_KULCS'
-.\build-custom-windows.ps1
-```
-
-Az elkészült fájl: `dist-custom\SoundLift Custom.exe`.
+A vásárló kizárólag a telepítőt és a neki létrehozott nyers `SL-...` kulcsot
+kapja meg. PowerShellt, Supabase-t vagy külön buildet nem kell használnia.
 
 ## Áthelyezés új számítógépre
 

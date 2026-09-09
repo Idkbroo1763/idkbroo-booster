@@ -19,6 +19,11 @@ foreach ($name in $requiredLoggingVariables) {
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Hiányzó kötelező build változó: $name" }
 }
 $source = [IO.File]::ReadAllText($sourceScript)
+$licenseApiUrl = [Regex]::Replace($env:SOUNDLIFT_LOG_API_URL.TrimEnd('/'), '/[^/]+$', '/verify-license')
+$source = $source.Replace("`$script:licenseMode = 'free'", "`$script:licenseMode = 'universal'")
+$source = $source.Replace("`$script:licenseApiUrl = ''", "`$script:licenseApiUrl = '$(ConvertTo-SingleQuotedLiteral $licenseApiUrl)'")
+$source = $source.Replace("`$script:licenseProductId = ''", "`$script:licenseProductId = 'soundlift-custom'")
+$source = $source.Replace("`$script:licenseAnonKey = ''", "`$script:licenseAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_ANON_KEY)'")
 if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_API_URL)) {
     $source = $source.Replace("`$script:logApiUrl = ''", "`$script:logApiUrl = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_API_URL)'")
 }
