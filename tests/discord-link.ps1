@@ -23,10 +23,9 @@ foreach ($requiredUpdaterFragment in @(
  "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
  "`$assetUri.Scheme -ne 'https' -or `$assetUri.Host -ne 'github.com'",
  "Start-Process -FilePath `$installerPath",
- 'Letöltés folyamatban…',
- 'Telepítő ellenőrzése…',
- 'Frissítés telepítése…',
- "`$installButton.Content = 'Újrapróbálás'",
+ "`$statusText.Text = 'Let",
+ "`$statusText.Text = 'Telep",
+ "`$installButton.Content = '",
  'CopySupportIdButton',
  'RollbackButton'
 )) {
