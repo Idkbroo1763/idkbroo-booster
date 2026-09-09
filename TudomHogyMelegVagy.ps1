@@ -22,6 +22,7 @@ $script:onboardingCompleted = $false
 # A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
 # vásárlói build készítésekor biztonságosan behelyettesíti.
 $script:licenseMode = 'free'
+$script:currentLicenseType = 'free'
 $script:licenseApiUrl = ''
 $script:licenseProductId = ''
 $script:licenseAnonKey = ''
@@ -361,10 +362,10 @@ function Get-SavedLicenseState {
     try { return Unprotect-LicenseState ([IO.File]::ReadAllText($path)) } catch { return $null }
 }
 
-function Save-LicenseState([string]$licenseKey) {
+function Save-LicenseState([string]$licenseKey, [string]$licenseType, [string]$authorizationId) {
     $directory = Join-Path $env:APPDATA 'SoundLift'
     if (-not (Test-Path $directory)) { [void][IO.Directory]::CreateDirectory($directory) }
-    $state = [PSCustomObject]@{ key = $licenseKey.Trim(); lastSuccessUtc = [DateTime]::UtcNow.ToString('o') }
+    $state = [PSCustomObject]@{ key=$licenseKey.Trim(); licenseType=$licenseType; authorizationId=$authorizationId; lastSuccessUtc=[DateTime]::UtcNow.ToString('o') }
     [IO.File]::WriteAllText((Join-Path $directory 'license.dat'), (Protect-LicenseState $state), [Text.Encoding]::UTF8)
 }
 
@@ -426,7 +427,8 @@ function Confirm-CustomLicense {
     try {
         $response = Invoke-LicenseApi $key
         if ($response.allowed -eq $true) {
-            Save-LicenseState $key
+            $script:currentLicenseType = [string]$response.license_type
+            Save-LicenseState $key $script:currentLicenseType ([string]$response.authorization_id)
             $eventName = if ($saved -and $saved.key) { 'validation_succeeded' } else { 'activation_succeeded' }
             Write-SoundLiftLog -Category license -EventName $eventName -Data @{ license_type=$response.license_type; code=$response.code }
             if ([string]$response.license_type -eq 'developer') {
@@ -446,6 +448,7 @@ function Confirm-CustomLicense {
         if ($saved -and $saved.lastSuccessUtc) {
             try {
                 if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) {
+                    $script:currentLicenseType = if ($saved.licenseType) { [string]$saved.licenseType } else { 'customer' }
                     Write-SoundLiftLog -Category license -EventName 'offline_grace_used' -Severity warning -Data @{ grace_hours=72 }
                     return $true
                 }
@@ -1190,6 +1193,7 @@ function Get-SoundLiftRollbackState {
 }
 
 function Save-SoundLiftRollbackCopy {
+    if ($script:currentLicenseType -ne 'developer') { return }
     if (-not $script:isPackagedExe -or -not (Test-Path $script:appLaunchPath)) { throw 'A futó alkalmazás nem menthető visszaállításhoz.' }
     $rollbackDirectory = Join-Path $script:appDirectory 'rollback'
     [IO.Directory]::CreateDirectory($rollbackDirectory) | Out-Null
@@ -1201,6 +1205,10 @@ function Save-SoundLiftRollbackCopy {
 }
 
 function Restore-SoundLiftPreviousVersion {
+    if ($script:currentLicenseType -ne 'developer') {
+        Write-SoundLiftLog -Category security -EventName 'license_rejected' -Severity warning -Data @{ code='ROLLBACK_NOT_DEVELOPER' }
+        return
+    }
     $state = Get-SoundLiftRollbackState
     if (-not $state) { [System.Windows.MessageBox]::Show('Nem található sértetlen előző verzió.', 'SoundLift – Visszaállítás', 'OK', 'Warning') | Out-Null; return }
     $answer = [System.Windows.MessageBox]::Show("Biztosan visszaállítod a SoundLift $($state.version) verzióját?`n`nA program újra fog indulni.", 'SoundLift – Előző verzió', 'YesNo', 'Warning')
@@ -1216,8 +1224,17 @@ function Restore-SoundLiftPreviousVersion {
     } catch { [System.Windows.MessageBox]::Show("A visszaállítás nem indítható el:`n$($_.Exception.Message)", 'SoundLift – Visszaállítás', 'OK', 'Error') | Out-Null }
 }
 
-$RollbackButton.IsEnabled = $null -ne (Get-SoundLiftRollbackState)
+$RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
 $RollbackButton.Add_Click({ Restore-SoundLiftPreviousVersion })
+
+function Update-DeveloperControls {
+    if ($script:currentLicenseType -eq 'developer') {
+        $RollbackButton.Visibility = 'Visible'
+        $RollbackButton.IsEnabled = $null -ne (Get-SoundLiftRollbackState)
+    } else {
+        $RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
+    }
+}
 
 function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
     $temporaryDirectory = $null
@@ -1684,6 +1701,7 @@ $window.Add_ContentRendered({
             Send-SoundLiftPendingLogs
             $script:reallyExit = $true; $window.Close(); return
         }
+        Update-DeveloperControls
         if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
         Check-AppUpdate -Silent
         Complete-SoundLiftStartup

@@ -144,9 +144,12 @@ Egy már kiadott régebbi EXE csak akkor kapja meg ezt a működést, ha tartalm
 az automatikus frissítő kódját; a V1.2.2 előtti EXE-ket egyszer kézzel kell
 frissíteni.
 
-Az automatikus frissítés a futó, működő EXE-ről a telepítési mappa `rollback`
-alkönyvtárában SHA-256-tal ellenőrzött mentést készít. A **Előző verzió
-visszaállítása** gomb csak sértetlen mentésnél aktív. A támogatási ID az
+Fejlesztői licenc használatakor az automatikus frissítés a futó, működő EXE-ről
+a telepítési mappa `rollback` alkönyvtárában SHA-256-tal ellenőrzött mentést
+készít. Normál és ingyenes kiadásnál nem készül visszaállítási EXE. Az **Előző verzió
+visszaállítása** gomb kizárólag sikeresen ellenőrzött fejlesztői licencnél
+látható, és csak sértetlen mentésnél aktív. A művelet futáskor ismét ellenőrzi
+a fejlesztői jogosultságot. A támogatási ID az
 alkalmazás bal oldali sávjában látható és külön gombbal másolható.
 
 A jelenlegi felület OAuth gombbal működik, slash parancs és bot nem szükséges.

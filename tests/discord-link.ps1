@@ -27,7 +27,9 @@ foreach ($requiredUpdaterFragment in @(
  "`$statusText.Text = 'Telep",
  "`$installButton.Content = '",
  'CopySupportIdButton',
- 'RollbackButton'
+ 'RollbackButton',
+ "`$script:currentLicenseType -ne 'developer'",
+ "`$RollbackButton.Visibility = 'Collapsed'"
 )) {
  if (-not $source.Contains($requiredUpdaterFragment)) { throw "Missing secure updater behavior: $requiredUpdaterFragment" }
 }
@@ -37,9 +39,12 @@ foreach ($name in @('Get-SoundLiftRollbackState', 'Save-SoundLiftRollbackCopy'))
 }
 $script:appDirectory = Join-Path ([IO.Path]::GetTempPath()) ('soundlift-rollback-' + [Guid]::NewGuid())
 [IO.Directory]::CreateDirectory($script:appDirectory) | Out-Null
-$script:appLaunchPath = Join-Path $script:appDirectory 'SoundLift.exe'; $script:isPackagedExe=$true; $script:appVersion='1.2.1'
+$script:appLaunchPath = Join-Path $script:appDirectory 'SoundLift.exe'; $script:isPackagedExe=$true; $script:appVersion='1.2.1'; $script:currentLicenseType='free'
 try {
  [IO.File]::WriteAllBytes($script:appLaunchPath, [byte[]](1,2,3,4,5))
+ Save-SoundLiftRollbackCopy
+ if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
+ $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
  $script:appVersion='1.2.2'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
