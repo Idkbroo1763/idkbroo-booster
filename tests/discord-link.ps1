@@ -18,6 +18,14 @@ foreach($case in @(
 }
 $gate=$source.IndexOf('if (-not (Confirm-DiscordAccountLink))')
 if($gate -lt 0 -or $gate -gt $source.IndexOf('$xaml =')) { throw 'Discord gate must precede UI creation' }
+foreach ($requiredUpdaterFragment in @(
+ 'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest',
+ "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
+ "`$assetUri.Scheme -ne 'https' -or `$assetUri.Host -ne 'github.com'",
+ "Start-Process -FilePath `$installerPath"
+)) {
+ if (-not $source.Contains($requiredUpdaterFragment)) { throw "Missing secure updater behavior: $requiredUpdaterFragment" }
+}
 Write-Host 'PASS: PowerShell syntax, expiry, future-clock rejection, installation binding, early gate'
 
 # Exercise the application's assembly loading and real DPAPI persistence in a

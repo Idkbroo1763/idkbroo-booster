@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
 }
-$script:appVersion = '1.2.1'
+$script:appVersion = '1.2.2'
 $script:onboardingCompleted = $false
 # A nyilvános buildben kikapcsolva marad. A build-custom-windows.ps1 ezeket
 # vásárlói build készítésekor biztonságosan behelyettesíti.
@@ -474,7 +474,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.2.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.2.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -566,7 +566,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.2.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.2.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -1163,31 +1163,82 @@ function Show-DiagnosticsWindow {
 
 $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 
+function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
+    $temporaryDirectory = $null
+    try {
+        $installerAsset = @($release.assets | Where-Object { $_.name -eq 'SoundLift Setup.exe' }) | Select-Object -First 1
+        $checksumAsset = @($release.assets | Where-Object { $_.name -eq 'SHA256SUMS.txt' }) | Select-Object -First 1
+        if (-not $installerAsset -or -not $checksumAsset) { throw 'A kiadásból hiányzik a telepítő vagy az ellenőrzőösszeg.' }
+        foreach ($asset in @($installerAsset, $checksumAsset)) {
+            $assetUri = [Uri]([string]$asset.browser_download_url)
+            if ($assetUri.Scheme -ne 'https' -or $assetUri.Host -ne 'github.com') { throw 'A frissítés letöltési címe nem engedélyezett.' }
+        }
+        $installButton.IsEnabled = $false; $statusText.Text = 'Frissítés letöltése…'
+        [Windows.Forms.Application]::DoEvents()
+        $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ('SoundLiftUpdate-' + [Guid]::NewGuid().ToString('N'))
+        [IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
+        $installerPath = Join-Path $temporaryDirectory 'SoundLift Setup.exe'
+        $checksumPath = Join-Path $temporaryDirectory 'SHA256SUMS.txt'
+        $downloadHeaders = @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/octet-stream' }
+        Invoke-WebRequest -UseBasicParsing -Uri ([string]$installerAsset.browser_download_url) -Headers $downloadHeaders -OutFile $installerPath -TimeoutSec 120
+        Invoke-WebRequest -UseBasicParsing -Uri ([string]$checksumAsset.browser_download_url) -Headers $downloadHeaders -OutFile $checksumPath -TimeoutSec 30
+        $checksumLine = Get-Content -LiteralPath $checksumPath | Where-Object { $_ -match '(?i)^[a-f0-9]{64}\s+\*?SoundLift Setup\.exe$' } | Select-Object -First 1
+        if (-not $checksumLine) { throw 'A telepítő ellenőrzőösszege nem található.' }
+        $expectedHash = ([regex]::Match($checksumLine, '(?i)^[a-f0-9]{64}')).Value.ToLowerInvariant()
+        $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $expectedHash) { throw 'A letöltött telepítő ellenőrzése sikertelen.' }
+        $statusText.Text = 'A telepítő ellenőrizve. Indítás…'; [Windows.Forms.Application]::DoEvents()
+        Write-SoundLiftLog -Category update -EventName 'update_install_started' -Data @{ old_version=$script:appVersion; new_version=$latestVersion }
+        Send-SoundLiftPendingLogs
+        Start-Process -FilePath $installerPath -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -ErrorAction Stop
+        return $true
+    } catch {
+        Write-SoundLiftLog -Category update -EventName 'update_install_failed' -Severity error -ErrorRecord $_ -Data @{ new_version=$latestVersion }
+        $statusText.Text = "A frissítés sikertelen: $($_.Exception.Message)"
+        $installButton.IsEnabled = $true
+        if ($temporaryDirectory -and (Test-Path $temporaryDirectory)) { try { Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force } catch { } }
+        return $false
+    }
+}
+
+function Show-AppUpdateDialog([object]$release, [version]$latestVersion) {
+    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Frissítés'; $dialog.Width=520; $dialog.Height=285
+    $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+    $panel=[Windows.Controls.StackPanel]::new(); $panel.Margin=[Windows.Thickness]::new(28)
+    $title=[Windows.Controls.TextBlock]::new(); $title.Text='Új SoundLift-frissítés érhető el'; $title.FontSize=23; $title.FontWeight='Bold'; $title.Foreground='#FF4057'
+    $details=[Windows.Controls.TextBlock]::new(); $details.Text="Telepített verzió: $script:appVersion`nÚj verzió: $latestVersion"; $details.FontSize=14; $details.Margin=[Windows.Thickness]::new(0,16,0,14)
+    $status=[Windows.Controls.TextBlock]::new(); $status.Text='A frissítés automatikusan letöltődik és települ.'; $status.TextWrapping='Wrap'; $status.Foreground='#CBD5E1'; $status.Margin=[Windows.Thickness]::new(0,0,0,18)
+    $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
+    $later=[Windows.Controls.Button]::new(); $later.Content='Később'; $later.Width=100; $later.Margin=[Windows.Thickness]::new(0,0,10,0)
+    $install=[Windows.Controls.Button]::new(); $install.Content='Frissítés telepítése'; $install.Width=175
+    $later.Add_Click({ $dialog.Close() }.GetNewClosure())
+    $install.Add_Click({
+        if (Install-SoundLiftUpdate $release $latestVersion $status $install) {
+            $dialog.Close(); $script:reallyExit=$true; $window.Close()
+        }
+    }.GetNewClosure())
+    $buttons.Children.Add($later)|Out-Null; $buttons.Children.Add($install)|Out-Null
+    foreach($control in @($title,$details,$status,$buttons)){ $panel.Children.Add($control)|Out-Null }
+    $dialog.Content=$panel; $dialog.ShowDialog()|Out-Null
+}
+
 function Check-AppUpdate {
     param([switch]$Silent)
     Write-SoundLiftLog -Category update -EventName 'update_check_started'
     try {
-        $latestText = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/Idkbroo1763/idkbroo-booster/main/VERSION.txt' -Headers @{ 'User-Agent' = 'SoundLift' } -TimeoutSec 8
-        $latestVersion = [version](([string]$latestText).Trim().TrimStart([char[]]'vV'))
+        $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest' -Headers @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/vnd.github+json' } -TimeoutSec 12
+        $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
             Write-SoundLiftLog -Category update -EventName 'update_available' -Data @{ old_version=$currentVersion; new_version=$latestVersion }
-            $answer = [System.Windows.MessageBox]::Show("Új verzió érhető el: $latestVersion`nTelepített verzió: $currentVersion`n`nMegnyitod a letöltési oldalt?", 'SoundLift – Frissítés', 'YesNo', 'Information')
-            if ($answer -eq 'Yes') {
-                Start-Process 'https://github.com/Idkbroo1763/idkbroo-booster/actions/workflows/build-windows.yml'
-                Write-SoundLiftLog -Category update -EventName 'download_page_opened' -Data @{ old_version=$currentVersion; new_version=$latestVersion }
-            }
+            Show-AppUpdateDialog $release $latestVersion
         } elseif (-not $Silent) {
             Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$currentVersion }
             [System.Windows.MessageBox]::Show("A program naprakész.`nTelepített verzió: $currentVersion", 'SoundLift – Frissítés', 'OK', 'Information') | Out-Null
-        } else {
-            Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$currentVersion }
-        }
+        } else { Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$currentVersion } }
     } catch {
         Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity warning -ErrorRecord $_
-        if (-not $Silent) {
-            [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`nEllenőrizd az internetkapcsolatot, vagy próbáld újra később.`n`n$($_.Exception.Message)", 'SoundLift – Frissítés', 'OK', 'Warning') | Out-Null
-        }
+        if (-not $Silent) { [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`n`n$($_.Exception.Message)", 'SoundLift – Frissítés', 'OK', 'Warning') | Out-Null }
     }
 }
 $UpdateButton.Add_Click({ Check-AppUpdate })
@@ -1228,6 +1279,11 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.2.2 – AUTOMATIKUS FRISSÍTÉS
+• Indításkor automatikusan ellenőrzi a legújabb nyilvános kiadást.
+• Egy gombnyomással letölti és elindítja az új telepítőt.
+• Telepítés előtt SHA-256 ellenőrzéssel védi a letöltött fájlt.
+
 V1.2.0 – DISCORD-FIÓK ÖSSZEKAPCSOLÁS
 • Kötelező, hitelesített Discord OAuth-kapcsolat az alkalmazás használatához.
 • Frissítés után is megmaradó kapcsolat és 72 órás védelem rövid backend-kiesésre.
@@ -1518,7 +1574,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.2.0'
+$script:trayIcon.Text = 'SoundLift V1.2.2'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

@@ -130,6 +130,20 @@ hitelesítő adat; nem fordításkor beépített közös titok. Ne oszd meg és 
 frissítéskor. A logokban csak ellenőrzött bizonyítékhoz rendeljük a Discord-nevet.
 Régi kliens logja név nélkül továbbra is fogadható.
 
+## Automatikus alkalmazásfrissítés
+
+A V1.2.2-től az alkalmazás induláskor a GitHub legfrissebb nyilvános kiadását
+ellenőrzi. Új verziónál a felhasználó a **Frissítés telepítése** gombbal letöltheti
+és elindíthatja a telepítőt. A kliens a kiadás `SHA256SUMS.txt` fájljával
+ellenőrzi a `SoundLift Setup.exe` fájlt, majd bezárja a régi példányt.
+
+Végleges kiadáshoz a GitHub Actions **Build Windows application** workflowban
+állítsd a `publish_release` mezőt igazra. Ez létrehozza vagy frissíti a verzióhoz
+tartozó GitHub Release-t, és feltölti a telepítőt az ellenőrzőösszeggel együtt.
+Egy már kiadott régebbi EXE csak akkor kapja meg ezt a működést, ha tartalmazza
+az automatikus frissítő kódját; a V1.2.2 előtti EXE-ket egyszer kézzel kell
+frissíteni.
+
 A jelenlegi felület OAuth gombbal működik, slash parancs és bot nem szükséges.
 Önkiszolgáló leválasztási felület még nincs; adminisztrátor a link sor revoked_at
 mezőjét beállítva visszavonhatja a hozzáférést. Visszavonás után online indítás

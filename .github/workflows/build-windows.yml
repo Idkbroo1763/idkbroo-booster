@@ -1,15 +1,22 @@
 name: Build Windows application
-run-name: SoundLift V1.2.1 letöltése
+run-name: SoundLift V1.2.2 letöltése
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Végleges frissítés közzététele az alkalmazáson belüli frissítőhöz"
+        required: true
+        type: boolean
+        default: false
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main, licensing-foundation]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -51,7 +58,7 @@ jobs:
       - name: Upload Windows files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.2.1 letöltése
+          name: SoundLift V1.2.2 letöltése
           path: |
             dist/SoundLift.exe
             dist/SoundLift Setup.exe
@@ -59,3 +66,26 @@ jobs:
             dist/SHA256SUMS.txt
             TELEPÍTÉS.txt
           if-no-files-found: error
+
+      - name: Publish automatic update release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_release == true
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$((Get-Content -LiteralPath '.\VERSION.txt' -Raw).Trim())"
+          $arguments = @(
+            $tag,
+            '.\dist\SoundLift Setup.exe',
+            '.\dist\SHA256SUMS.txt',
+            '--repo', '${{ github.repository }}',
+            '--title', "SoundLift $tag",
+            '--target', '${{ github.sha }}',
+            '--latest',
+            '--generate-notes'
+          )
+          if (gh release view $tag --repo '${{ github.repository }}' 2>$null) {
+            gh release upload $tag '.\dist\SoundLift Setup.exe' '.\dist\SHA256SUMS.txt' --repo '${{ github.repository }}' --clobber
+          } else {
+            gh release create @arguments
+          }

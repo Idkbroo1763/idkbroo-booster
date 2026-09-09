@@ -8,7 +8,7 @@ const severities = new Set(["debug", "info", "warning", "error", "critical"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const clientEvents = new Set([
   "process_started", "initialization_succeeded", "initialization_failed", "startup_crash", "unhandled_runtime_error", "handled_runtime_error",
-  "update_check_started", "update_check_succeeded", "update_check_failed", "update_available", "download_page_opened", "version_changed",
+  "update_check_started", "update_check_succeeded", "update_check_failed", "update_available", "download_page_opened", "version_changed", "update_install_started", "update_install_failed",
   "activation_cancelled", "activation_succeeded", "validation_succeeded", "validation_failed", "validation_unavailable", "offline_grace_used",
   "license_rejected", "developer_license_used",
   "discord_link_required", "discord_link_succeeded", "discord_link_cancelled", "discord_link_check_failed", "discord_link_offline_grace_used",
