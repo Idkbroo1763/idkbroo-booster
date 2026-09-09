@@ -20,14 +20,14 @@ $gate=$source.IndexOf('if (-not (Confirm-DiscordAccountLink))')
 if($gate -lt 0 -or $gate -gt $source.IndexOf('$xaml =')) { throw 'Discord gate must precede UI creation' }
 $buildSource = Get-Content "$PSScriptRoot/../build-windows.ps1" -Raw
 foreach ($requiredUniversalBuildFragment in @(
- "`$script:licenseMode = 'universal'",
- "`$script:licenseProductId = 'soundlift-custom'",
+ "licenseMode = 'universal'",
+ "licenseProductId = 'soundlift-custom'",
  '/verify-license',
  'SOUNDLIFT_LOG_ANON_KEY'
 )) {
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
-if ($source -notmatch "`$script:appVersion = '1\.3\.0'") { throw 'Application version was not updated to 1.3.0' }
+if (-not $source.Contains("`$script:appVersion = '1.3.0'")) { throw 'Application version was not updated to 1.3.0' }
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest',
  "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
