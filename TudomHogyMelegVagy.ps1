@@ -1188,12 +1188,12 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
         $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actualHash -ne $expectedHash) { throw 'A letöltött telepítő ellenőrzése sikertelen.' }
         $statusText.Text = 'A telepítő ellenőrizve. Indítás…'; [Windows.Forms.Application]::DoEvents()
-        Write-SoundLiftLog -Category update -EventName 'update_install_started' -Data @{ old_version=$script:appVersion; new_version=$latestVersion }
+        Write-SoundLiftLog -Category update -EventName 'download_page_opened' -Data @{ old_version=$script:appVersion; new_version=$latestVersion; result='automatic_installer_started' }
         Send-SoundLiftPendingLogs
         Start-Process -FilePath $installerPath -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -ErrorAction Stop
         return $true
     } catch {
-        Write-SoundLiftLog -Category update -EventName 'update_install_failed' -Severity error -ErrorRecord $_ -Data @{ new_version=$latestVersion }
+        Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity error -ErrorRecord $_ -Data @{ new_version=$latestVersion; stage='automatic_install' }
         $statusText.Text = "A frissítés sikertelen: $($_.Exception.Message)"
         $installButton.IsEnabled = $true
         if ($temporaryDirectory -and (Test-Path $temporaryDirectory)) { try { Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force } catch { } }
