@@ -611,6 +611,8 @@ $xaml = @'
               </ComboBox.Resources>
             </ComboBox>
             <TextBlock Name="VersionText" Text="Telepített verzió: 1.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
+            <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
@@ -703,6 +705,7 @@ $xaml = @'
                       <Button Name="DeviceButton" Content="▣  Hangeszközök" Style="{StaticResource UtilityButton}"/>
                       <Button Name="DiagnosticsButton" Content="✓  Diagnosztika" Style="{StaticResource UtilityButton}"/>
                       <Button Name="UpdateButton" Content="↻  Frissítések" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="RollbackButton" Content="↶  Előző verzió visszaállítása" Style="{StaticResource UtilityButton}"/>
                       <Button Name="ChangelogButton" Content="≡  Változások" Style="{StaticResource UtilityButton}"/>
                     </WrapPanel>
                   </StackPanel>
@@ -747,9 +750,16 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
+$SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
+$CopySupportIdButton.Add_Click({
+    try {
+        [Windows.Forms.Clipboard]::SetText((Get-SoundLiftSupportId))
+        $StatusText.Text = 'OK - Támogatási ID a vágólapra másolva'
+    } catch { [System.Windows.MessageBox]::Show('A támogatási ID most nem másolható a vágólapra.', 'SoundLift', 'OK', 'Warning') | Out-Null }
+})
 
 $script:eqBands = @(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
 $script:eqSliders = @()
@@ -1163,6 +1173,52 @@ function Show-DiagnosticsWindow {
 
 $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 
+function Get-SoundLiftRollbackState {
+    $rollbackDirectory = Join-Path $script:appDirectory 'rollback'
+    $backupPath = Join-Path $rollbackDirectory 'SoundLift.previous.exe'
+    $statePath = Join-Path $rollbackDirectory 'rollback-state.json'
+    if (-not (Test-Path $backupPath) -or -not (Test-Path $statePath)) { return $null }
+    try {
+        $state = Get-Content -LiteralPath $statePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace([string]$state.sha256) -or [string]::IsNullOrWhiteSpace([string]$state.version)) { return $null }
+        $backupVersion = [version]([string]$state.version)
+        if ($backupVersion -ge [version]$script:appVersion) { return $null }
+        $actualHash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        if ($actualHash -ne ([string]$state.sha256).ToLowerInvariant()) { return $null }
+        return [PSCustomObject]@{ path=$backupPath; version=[string]$state.version; sha256=$actualHash }
+    } catch { return $null }
+}
+
+function Save-SoundLiftRollbackCopy {
+    if (-not $script:isPackagedExe -or -not (Test-Path $script:appLaunchPath)) { throw 'A futó alkalmazás nem menthető visszaállításhoz.' }
+    $rollbackDirectory = Join-Path $script:appDirectory 'rollback'
+    [IO.Directory]::CreateDirectory($rollbackDirectory) | Out-Null
+    $backupPath = Join-Path $rollbackDirectory 'SoundLift.previous.exe'
+    [IO.File]::Copy($script:appLaunchPath, $backupPath, $true)
+    $hash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $state = @{ version=$script:appVersion; sha256=$hash; created_utc=[DateTime]::UtcNow.ToString('o') }
+    [IO.File]::WriteAllText((Join-Path $rollbackDirectory 'rollback-state.json'), ($state | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+}
+
+function Restore-SoundLiftPreviousVersion {
+    $state = Get-SoundLiftRollbackState
+    if (-not $state) { [System.Windows.MessageBox]::Show('Nem található sértetlen előző verzió.', 'SoundLift – Visszaállítás', 'OK', 'Warning') | Out-Null; return }
+    $answer = [System.Windows.MessageBox]::Show("Biztosan visszaállítod a SoundLift $($state.version) verzióját?`n`nA program újra fog indulni.", 'SoundLift – Előző verzió', 'YesNo', 'Warning')
+    if ($answer -ne 'Yes') { return }
+    try {
+        $targetPath = $script:appLaunchPath
+        $command = "Start-Sleep -Seconds 2; `$actual=(Get-FileHash -LiteralPath '$($state.path.Replace("'", "''"))' -Algorithm SHA256).Hash.ToLowerInvariant(); if (`$actual -ne '$($state.sha256)') { exit 2 }; Copy-Item -LiteralPath '$($state.path.Replace("'", "''"))' -Destination '$($targetPath.Replace("'", "''"))' -Force; Start-Process -FilePath '$($targetPath.Replace("'", "''"))'"
+        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+        Write-SoundLiftLog -Category update -EventName 'version_changed' -Data @{ old_version=$script:appVersion; new_version=$state.version; result='rollback_started' }
+        Send-SoundLiftPendingLogs
+        Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile','-NonInteractive','-WindowStyle','Hidden','-EncodedCommand',$encoded -ErrorAction Stop
+        $script:reallyExit=$true; $window.Close()
+    } catch { [System.Windows.MessageBox]::Show("A visszaállítás nem indítható el:`n$($_.Exception.Message)", 'SoundLift – Visszaállítás', 'OK', 'Error') | Out-Null }
+}
+
+$RollbackButton.IsEnabled = $null -ne (Get-SoundLiftRollbackState)
+$RollbackButton.Add_Click({ Restore-SoundLiftPreviousVersion })
+
 function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
     $temporaryDirectory = $null
     try {
@@ -1173,7 +1229,7 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
             $assetUri = [Uri]([string]$asset.browser_download_url)
             if ($assetUri.Scheme -ne 'https' -or $assetUri.Host -ne 'github.com') { throw 'A frissítés letöltési címe nem engedélyezett.' }
         }
-        $installButton.IsEnabled = $false; $statusText.Text = 'Frissítés letöltése…'
+        $installButton.IsEnabled = $false; $installButton.Content = 'Frissítés folyamatban…'; $statusText.Text = 'Letöltés folyamatban…'
         [Windows.Forms.Application]::DoEvents()
         $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ('SoundLiftUpdate-' + [Guid]::NewGuid().ToString('N'))
         [IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
@@ -1182,12 +1238,14 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
         $downloadHeaders = @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/octet-stream' }
         Invoke-WebRequest -UseBasicParsing -Uri ([string]$installerAsset.browser_download_url) -Headers $downloadHeaders -OutFile $installerPath -TimeoutSec 120
         Invoke-WebRequest -UseBasicParsing -Uri ([string]$checksumAsset.browser_download_url) -Headers $downloadHeaders -OutFile $checksumPath -TimeoutSec 30
+        $statusText.Text = 'Telepítő ellenőrzése…'; [Windows.Forms.Application]::DoEvents()
         $checksumLine = Get-Content -LiteralPath $checksumPath | Where-Object { $_ -match '(?i)^[a-f0-9]{64}\s+\*?SoundLift Setup\.exe$' } | Select-Object -First 1
         if (-not $checksumLine) { throw 'A telepítő ellenőrzőösszege nem található.' }
         $expectedHash = ([regex]::Match($checksumLine, '(?i)^[a-f0-9]{64}')).Value.ToLowerInvariant()
         $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actualHash -ne $expectedHash) { throw 'A letöltött telepítő ellenőrzése sikertelen.' }
-        $statusText.Text = 'A telepítő ellenőrizve. Indítás…'; [Windows.Forms.Application]::DoEvents()
+        Save-SoundLiftRollbackCopy
+        $statusText.Text = 'Frissítés telepítése…'; [Windows.Forms.Application]::DoEvents()
         Write-SoundLiftLog -Category update -EventName 'download_page_opened' -Data @{ old_version=$script:appVersion; new_version=$latestVersion; result='automatic_installer_started' }
         Send-SoundLiftPendingLogs
         Start-Process -FilePath $installerPath -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -ErrorAction Stop
@@ -1195,7 +1253,7 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
     } catch {
         Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity error -ErrorRecord $_ -Data @{ new_version=$latestVersion; stage='automatic_install' }
         $statusText.Text = "A frissítés sikertelen: $($_.Exception.Message)"
-        $installButton.IsEnabled = $true
+        $installButton.Content = 'Újrapróbálás'; $installButton.IsEnabled = $true
         if ($temporaryDirectory -and (Test-Path $temporaryDirectory)) { try { Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force } catch { } }
         return $false
     }
@@ -1283,6 +1341,9 @@ V1.2.2 – AUTOMATIKUS FRISSÍTÉS
 • Indításkor automatikusan ellenőrzi a legújabb nyilvános kiadást.
 • Egy gombnyomással letölti és elindítja az új telepítőt.
 • Telepítés előtt SHA-256 ellenőrzéssel védi a letöltött fájlt.
+• Látható és egy kattintással másolható támogatási azonosító.
+• Részletes letöltési, ellenőrzési és telepítési állapot, hiba után újrapróbálással.
+• Az automatikus frissítés előtt mentett, ellenőrzött előző verzió visszaállítható.
 
 V1.2.0 – DISCORD-FIÓK ÖSSZEKAPCSOLÁS
 • Kötelező, hitelesített Discord OAuth-kapcsolat az alkalmazás használatához.

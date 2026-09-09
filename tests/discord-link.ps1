@@ -22,10 +22,32 @@ foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest',
  "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
  "`$assetUri.Scheme -ne 'https' -or `$assetUri.Host -ne 'github.com'",
- "Start-Process -FilePath `$installerPath"
+ "Start-Process -FilePath `$installerPath",
+ 'Letöltés folyamatban…',
+ 'Telepítő ellenőrzése…',
+ 'Frissítés telepítése…',
+ "`$installButton.Content = 'Újrapróbálás'",
+ 'CopySupportIdButton',
+ 'RollbackButton'
 )) {
  if (-not $source.Contains($requiredUpdaterFragment)) { throw "Missing secure updater behavior: $requiredUpdaterFragment" }
 }
+foreach ($name in @('Get-SoundLiftRollbackState', 'Save-SoundLiftRollbackCopy')) {
+ $definition = $ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name}, $true)
+ Invoke-Expression $definition.Extent.Text
+}
+$script:appDirectory = Join-Path ([IO.Path]::GetTempPath()) ('soundlift-rollback-' + [Guid]::NewGuid())
+[IO.Directory]::CreateDirectory($script:appDirectory) | Out-Null
+$script:appLaunchPath = Join-Path $script:appDirectory 'SoundLift.exe'; $script:isPackagedExe=$true; $script:appVersion='1.2.1'
+try {
+ [IO.File]::WriteAllBytes($script:appLaunchPath, [byte[]](1,2,3,4,5))
+ Save-SoundLiftRollbackCopy
+ $script:appVersion='1.2.2'
+ if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
+ [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
+ if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }
+ Write-Host 'PASS: rollback backup is created and hash tampering is rejected'
+} finally { Remove-Item -LiteralPath $script:appDirectory -Recurse -Force }
 Write-Host 'PASS: PowerShell syntax, expiry, future-clock rejection, installation binding, early gate'
 
 # Exercise the application's assembly loading and real DPAPI persistence in a
