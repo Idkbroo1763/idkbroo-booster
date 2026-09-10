@@ -28,7 +28,7 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $source.Contains("`$script:appVersion = '1.3.3'")) { throw 'Application version was not updated to 1.3.3' }
-foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult')) {
+foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing V1.3.3 feature: $requiredFeature" }
 }
 foreach ($requiredUpdaterFragment in @(

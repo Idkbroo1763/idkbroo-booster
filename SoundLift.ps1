@@ -682,6 +682,7 @@ $xaml = @'
             <Button Name="LicenseButton" Content="🔑  Licenc aktiválása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
+            <Button Name="PrivacyButton" Content="🛡  Adatvédelem" Style="{StaticResource UtilityButton}"/>
             <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
         </Grid>
@@ -819,7 +820,7 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','PrivacyButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 $SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
@@ -1287,13 +1288,21 @@ $RepairApoButton.Add_Click({
 function Show-ProblemReportWindow {
     $report = Get-DiagnosticsReport
     $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Hiba jelentése'
-    $dialog.Width = 780; $dialog.Height = 640; $dialog.MinWidth = 650; $dialog.MinHeight = 500
+    $dialog.Width = 800; $dialog.Height = 720; $dialog.MinWidth = 680; $dialog.MinHeight = 580
     $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
     $root = [Windows.Controls.Grid]::new(); $root.Margin = [Windows.Thickness]::new(22)
     $auto = [Windows.GridLength]::Auto
-    foreach ($height in @($auto, [Windows.GridLength]::new(1,[Windows.GridUnitType]::Star), $auto, $auto)) { $row=[Windows.Controls.RowDefinition]::new(); $row.Height=$height; $root.RowDefinitions.Add($row) }
-    $heading = [Windows.Controls.TextBlock]::new(); $heading.Text = 'Ezt a jelentést fogja elküldeni a SoundLift'; $heading.FontSize = 21; $heading.FontWeight = 'Bold'; $heading.Foreground = $window.Resources['AccentTextBrush']; $heading.Margin = [Windows.Thickness]::new(0,0,0,12)
-    $box = [Windows.Controls.TextBox]::new(); $box.Text=$report; $box.IsReadOnly=$true; $box.AcceptsReturn=$true; $box.TextWrapping='NoWrap'; $box.VerticalScrollBarVisibility='Auto'; $box.HorizontalScrollBarVisibility='Auto'; $box.FontFamily='Consolas'; $box.FontSize=12; $box.Padding=12; $box.Background='#111113'; $box.Foreground='#F8FAFC'; $box.BorderBrush='#3F3F46'
+    foreach ($height in @($auto,$auto,$auto,$auto,[Windows.GridLength]::new(1,[Windows.GridUnitType]::Star),$auto,$auto)) { $row=[Windows.Controls.RowDefinition]::new(); $row.Height=$height; $root.RowDefinitions.Add($row) }
+    $heading = [Windows.Controls.TextBlock]::new(); $heading.Text = 'Hiba jelentése'; $heading.FontSize = 23; $heading.FontWeight = 'Bold'; $heading.Foreground = $window.Resources['AccentTextBrush']; $heading.Margin = [Windows.Thickness]::new(0,0,0,14)
+    $descriptionLabel=[Windows.Controls.TextBlock]::new(); $descriptionLabel.Text='Írd le röviden, mi történt (opcionális)'; $descriptionLabel.FontSize=13; $descriptionLabel.FontWeight='SemiBold'; $descriptionLabel.Margin=[Windows.Thickness]::new(0,0,0,7)
+    $description=[Windows.Controls.TextBox]::new(); $description.Height=72; $description.MaxLength=1000; $description.AcceptsReturn=$true; $description.TextWrapping='Wrap'; $description.VerticalScrollBarVisibility='Auto'; $description.Padding=10; $description.Background='#111113'; $description.Foreground='#F8FAFC'; $description.BorderBrush='#3F3F46'; $description.Margin=[Windows.Thickness]::new(0,0,0,13)
+    $previewLabel=[Windows.Controls.TextBlock]::new(); $previewLabel.Text='Elküldésre kerülő adatok előnézete'; $previewLabel.FontSize=13; $previewLabel.FontWeight='SemiBold'; $previewLabel.Margin=[Windows.Thickness]::new(0,0,0,7)
+    $box = [Windows.Controls.TextBox]::new(); $box.IsReadOnly=$true; $box.AcceptsReturn=$true; $box.TextWrapping='NoWrap'; $box.VerticalScrollBarVisibility='Auto'; $box.HorizontalScrollBarVisibility='Auto'; $box.FontFamily='Consolas'; $box.FontSize=12; $box.Padding=12; $box.Background='#111113'; $box.Foreground='#F8FAFC'; $box.BorderBrush='#3F3F46'
+    $refreshPreview = {
+        $userText = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
+        $box.Text = "FELHASZNÁLÓ LEÍRÁSA`r`n$userText`r`n`r`n$report"
+    }.GetNewClosure()
+    $description.Add_TextChanged($refreshPreview); & $refreshPreview
     $privacy = [Windows.Controls.TextBlock]::new(); $privacy.Text='A jelentés nem tartalmaz licenckulcsot, webhookot, jelszót vagy teljes gépazonosítót. Csak az Elküldés gomb után továbbítjuk.'; $privacy.TextWrapping='Wrap'; $privacy.Foreground='#94A3B8'; $privacy.Margin=[Windows.Thickness]::new(0,12,0,12)
     $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
     $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Mégse'; $cancel.Width=105; $cancel.Margin=[Windows.Thickness]::new(0,0,10,0); $cancel.Style=$window.Resources['UtilityButton']
@@ -1302,7 +1311,8 @@ function Show-ProblemReportWindow {
     $send.Add_Click({
         $send.IsEnabled=$false; $send.Content='Küldés folyamatban…'; [Windows.Forms.Application]::DoEvents()
         try {
-            Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ diagnostic_report=$report; submitted_by_user='true' }
+            $submittedDescription = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
+            Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ user_description=$submittedDescription; diagnostic_report=$report; submitted_by_user='true' }
             $sent = Send-SoundLiftPendingLogs
             $StatusText.Text = if ($sent) { 'OK - A hibajelentés elküldve' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
             $StatusBorder.Background = if ($sent) { '#143126' } else { '#4A3514' }
@@ -1315,7 +1325,7 @@ function Show-ProblemReportWindow {
         }
     }.GetNewClosure())
     $buttons.Children.Add($cancel)|Out-Null; $buttons.Children.Add($send)|Out-Null
-    foreach($pair in @(@($heading,0),@($box,1),@($privacy,2),@($buttons,3))){ [Windows.Controls.Grid]::SetRow($pair[0],$pair[1]); $root.Children.Add($pair[0])|Out-Null }
+    foreach($pair in @(@($heading,0),@($descriptionLabel,1),@($description,2),@($previewLabel,3),@($box,4),@($privacy,5),@($buttons,6))){ [Windows.Controls.Grid]::SetRow($pair[0],$pair[1]); $root.Children.Add($pair[0])|Out-Null }
     $dialog.Content=$root; $dialog.ShowDialog()|Out-Null
 }
 
@@ -1561,6 +1571,45 @@ function Show-AboutWindow {
 }
 $AboutButton.Add_Click({ Show-AboutWindow })
 
+function Show-PrivacyWindow {
+    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Adatvédelmi tájékoztató'; $dialog.Width=720; $dialog.Height=650; $dialog.MinWidth=620; $dialog.MinHeight=480
+    $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+    $root=[Windows.Controls.Grid]::new(); $root.Margin=[Windows.Thickness]::new(24)
+    $root.RowDefinitions.Add([Windows.Controls.RowDefinition]::new()); $buttonRow=[Windows.Controls.RowDefinition]::new(); $buttonRow.Height=[Windows.GridLength]::Auto; $root.RowDefinitions.Add($buttonRow)
+    $scroll=[Windows.Controls.ScrollViewer]::new(); $scroll.VerticalScrollBarVisibility='Auto'; $scroll.HorizontalScrollBarVisibility='Disabled'
+    $panel=[Windows.Controls.StackPanel]::new(); $panel.Margin=[Windows.Thickness]::new(4,0,12,0)
+    $title=[Windows.Controls.TextBlock]::new(); $title.Text='Adatvédelmi tájékoztató'; $title.FontSize=25; $title.FontWeight='Bold'; $title.Foreground=$window.Resources['AccentTextBrush']; $title.Margin=[Windows.Thickness]::new(0,0,0,16)
+    $body=[Windows.Controls.TextBlock]::new(); $body.Text=@"
+MIT KÜLDHET AUTOMATIKUSAN A SOUNDLIFT?
+• alkalmazásverzió, időpont, eseménytípus és súlyosság;
+• véletlenszerű telepítési azonosító és rövid támogatási ID;
+• licenctípus és termékazonosító, de a licenckulcs nem;
+• az összekapcsolt Discord-fiók felhasználói azonosítója és megjelenített neve;
+• technikai hibaüzenet, kivételtípus és a hibát okozó kódrész helye;
+• frissítésnél a régi és új verzió, a folyamat állapota és eredménye.
+
+MIT KÜLD A „HIBA JELENTÉSE” FUNKCIÓ?
+Csak az Elküldés megnyomása után továbbítja az előnézetben látható adatokat: az opcionális saját leírást, támogatási ID-t, Windows-verziót, aktív hangkimenet nevét, rendszergazdai állapotot, az Equalizer APO és a SoundLift konfigurációjának állapotát, valamint az ismert ütköző hangprogramok folyamatnevét.
+
+MIT NEM KÜLDÜNK?
+• nyers licenckulcsot, jelszót, Discord tokent vagy webhookot;
+• Windows-felhasználónevet és teljes felhasználói mappaútvonalat;
+• teljes gép- vagy hardverazonosítót;
+• Discord-üzeneteket, szerverlistát vagy böngészési előzményeket;
+• személyes fájlokat és azok tartalmát.
+
+TÁROLÁS ÉS BIZTONSÁG
+A helyi technikai naplók a %LOCALAPPDATA%\SoundLift\logs mappában találhatók, és 14 nap után automatikusan törlődnek. A sikertelenül továbbított események titkos adat nélkül várólistára kerülnek, majd a következő indításkor újrapróbáljuk őket. A továbbított naplók a SoundLift támogatási rendszerében addig maradnak meg, amíg hibakeresési vagy biztonsági célból szükségesek.
+
+KAPCSOLAT
+Adatvédelmi vagy törlési kéréshez használd a Névjegy és Discord menüben található SoundLift Discord-szervert, és add meg a támogatási ID-dat.
+"@; $body.TextWrapping='Wrap'; $body.FontSize=13; $body.LineHeight=20; $body.Foreground='#CBD5E1'
+    $panel.Children.Add($title)|Out-Null; $panel.Children.Add($body)|Out-Null; $scroll.Content=$panel; $root.Children.Add($scroll)|Out-Null
+    $close=[Windows.Controls.Button]::new(); $close.Content='Rendben'; $close.Width=120; $close.HorizontalAlignment='Right'; $close.Margin=[Windows.Thickness]::new(0,14,0,0); $close.Style=$window.Resources['PrimaryButton']; $close.Add_Click({$dialog.Close()}.GetNewClosure())
+    [Windows.Controls.Grid]::SetRow($close,1); $root.Children.Add($close)|Out-Null; $dialog.Content=$root; $dialog.ShowDialog()|Out-Null
+}
+$PrivacyButton.Add_Click({ Show-PrivacyWindow })
+
 function Show-ChangelogWindow {
     $changelog = @"
 V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
@@ -1568,6 +1617,8 @@ V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
 • Újraindítás után ellenőrzi és visszajelzi a sikeresen telepített verziót.
 • Egygombos, biztonsági mentést készítő Equalizer APO Include-javítás.
 • Átlátható hibajelentés-előnézet: elküldés előtt pontosan látható minden továbbított adat.
+• Opcionális felhasználói hibaleírás a támogatási jelentésekhez.
+• Beépített, részletes adatvédelmi tájékoztató külön menüponttal.
 
 V1.3.2 – AUTOMATIKUS FRISSÍTÉS JAVÍTÁSA
 • A frissítő kezeli a GitHub által ponttal tárolt telepítőnevet.
