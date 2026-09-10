@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.0'
+$script:appVersion = '1.3.1'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -493,7 +493,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.0" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -585,7 +585,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.0" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -1384,6 +1384,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.1 – SÖTÉT FELÜLET ÉS SOUNDLIFT NÉVEGYSÉGESÍTÉS
+• Fekete Windows-címsor és sötét alkalmazáskeret.
+• A jobb oldali görgetősáv elrejtve; az egérgörgős navigáció továbbra is működik.
+• A témaválasztó teljesen sötét, a kijelölés az aktív téma színét használja.
+• Minden alkalmazás-, indító- és konfigurációs fájl egységesen SoundLift nevet kapott.
+
 V1.3.0 – EGYSÉGES ALKALMAZÁS ÉS LICENC
 • Ugyanaz a telepítő használható ingyenes, vásárlói és fejlesztői módban.
 • A licenc az alkalmazásban aktiválható, és frissítés után is megmarad.
@@ -1695,7 +1701,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.0'
+$script:trayIcon.Text = 'SoundLift V1.3.1'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
