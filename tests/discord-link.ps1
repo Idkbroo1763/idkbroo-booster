@@ -31,6 +31,9 @@ if (-not $source.Contains("`$script:appVersion = '1.3.4'")) { throw 'Application
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
+foreach ($requiredTheme in @('Fekete és lila','Éjkék és türkiz','Grafit és narancs','Fekete és arany','OLED fekete','Világos')) {
+    if (-not $source.Contains("'$requiredTheme'")) { throw "Missing SoundLift theme: $requiredTheme" }
+}
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest',
  "`$_.name -in @('SoundLift.Setup.exe', 'SoundLift Setup.exe')",

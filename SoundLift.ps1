@@ -503,7 +503,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SoundLift V1.3.4" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
-        WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
+        WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
   <Window.Resources>
@@ -515,11 +515,20 @@ $xaml = @'
     </LinearGradientBrush>
     <SolidColorBrush x:Key="AccentTextBrush" Color="#FF4057"/>
     <SolidColorBrush x:Key="HoverBrush" Color="#3A1016"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#111113"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#0B0B0D"/>
+    <SolidColorBrush x:Key="ControlBrush" Color="#17171B"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#29292E"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#CBD5E1"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B"/>
+    <SolidColorBrush x:Key="SectionTextBrush" Color="#9A7C80"/>
+    <SolidColorBrush x:Key="AccentContrastBrush" Color="#FFFFFF"/>
     <DropShadowEffect x:Key="CardShadow" BlurRadius="22" ShadowDepth="4" Opacity="0.25" Color="#000000"/>
     <Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI"/></Style>
     <Style TargetType="Button">
       <Setter Property="FontFamily" Value="Segoe UI Semibold"/><Setter Property="FontSize" Value="13"/>
-      <Setter Property="Foreground" Value="#FFF1F2"/><Setter Property="Background" Value="#18181B"/>
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/><Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
       <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="15,10"/>
       <Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,0,8"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
@@ -544,7 +553,7 @@ $xaml = @'
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
     <Style x:Key="UtilityButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="#17171B"/><Setter Property="BorderBrush" Value="#2B2B31"/><Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Background" Value="{DynamicResource ControlBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Padding" Value="13,9"/><Setter Property="Margin" Value="0,0,8,8"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
@@ -553,7 +562,7 @@ $xaml = @'
       <Setter Property="BorderBrush" Value="#5A2029"/><Setter Property="Padding" Value="16,10"/>
     </Style>
     <Style TargetType="CheckBox">
-      <Setter Property="Foreground" Value="#CBD5E1"/><Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/><Setter Property="FontSize" Value="13"/>
       <Setter Property="Margin" Value="0,4,18,4"/><Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style TargetType="Slider">
@@ -594,11 +603,11 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.4" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.4" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
-          <TextBlock Name="StatusText" Text="A hangrendszer ellenőrzése folyamatban…" FontSize="13" FontWeight="SemiBold" Foreground="#E2E8F0"/>
+          <TextBlock Name="StatusText" Text="A hangrendszer ellenőrzése folyamatban…" FontSize="13" FontWeight="SemiBold" Foreground="#F8FAFC"/>
           <TextBlock Name="DeviceText" Text="Aktív hangkimenet észlelése…" FontSize="12" Foreground="#8B9BB4" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
       </Border>
@@ -607,10 +616,10 @@ $xaml = @'
     <Grid Grid.Row="1" Margin="30,0,30,28">
       <Grid.ColumnDefinitions><ColumnDefinition Width="245"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
-      <Border Grid.Column="0" Background="#111113" CornerRadius="18" Padding="16" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
+      <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="HANGPROFILOK" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="5,2,0,13"/>
+          <TextBlock Text="HANGPROFILOK" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="5,2,0,13"/>
           <StackPanel Grid.Row="1">
             <Button Name="MusicButton" Content="♫   Zene"/>
             <Button Name="GameButton" Content="◆   FiveM RP"/>
@@ -623,9 +632,9 @@ $xaml = @'
           </StackPanel>
           <StackPanel Grid.Row="2">
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
-            <TextBlock Text="MEGJELENÉS" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
+            <TextBlock Text="MEGJELENÉS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="4,0,0,5"/>
             <ComboBox Name="ThemeCombo" Height="34" Margin="0,0,0,9" Padding="8,3"
-                      Background="#17171B" Foreground="#F8FAFC" BorderBrush="#3F3F46" FontWeight="SemiBold">
+                      Background="{DynamicResource ControlBrush}" Foreground="{DynamicResource PrimaryTextBrush}" BorderBrush="{DynamicResource BorderBrush}" FontWeight="SemiBold">
               <ComboBox.Template>
                 <ControlTemplate TargetType="{x:Type ComboBox}">
                   <Grid>
@@ -633,7 +642,7 @@ $xaml = @'
                                   IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                       <ToggleButton.Template>
                         <ControlTemplate TargetType="{x:Type ToggleButton}">
-                          <Border x:Name="ThemeBorder" Background="#17171B" BorderBrush="#3F3F46"
+                          <Border x:Name="ThemeBorder" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                   BorderThickness="1" CornerRadius="5">
                             <Grid>
                               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
@@ -654,7 +663,7 @@ $xaml = @'
                     <Popup Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
                            AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
                       <Border Margin="0,3,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="180"
-                              Background="#111113" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="5">
+                              Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="5">
                         <ScrollViewer Margin="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                           <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
                         </ScrollViewer>
@@ -665,12 +674,12 @@ $xaml = @'
               </ComboBox.Template>
               <ComboBox.Resources>
                 <Style TargetType="{x:Type ComboBoxItem}">
-                  <Setter Property="Foreground" Value="#F8FAFC"/>
-                  <Setter Property="Background" Value="#17171B"/>
+                  <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                  <Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
                   <Setter Property="Padding" Value="9,6"/>
                   <Style.Triggers>
                     <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
-                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentTextBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentTextBrush}"/><Setter Property="Foreground" Value="{DynamicResource AccentContrastBrush}"/></Trigger>
                   </Style.Triggers>
                 </Style>
               </ComboBox.Resources>
@@ -690,7 +699,7 @@ $xaml = @'
 
       <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
         <StackPanel>
-          <Border Background="#111113" CornerRadius="18" Padding="22,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="22,17" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
               <StackPanel>
@@ -706,7 +715,7 @@ $xaml = @'
             </Grid>
           </Border>
 
-          <Border Background="#111113" CornerRadius="18" Padding="22,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="22,17" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <DockPanel>
@@ -717,11 +726,11 @@ $xaml = @'
             </Grid>
           </Border>
 
-          <Border Background="#111113" CornerRadius="18" Padding="22,15" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="22,15" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="VÉDELEM ÉS AUTOMATIZÁLÁS" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="0,0,0,8"/>
+                <TextBlock Text="VÉDELEM ÉS AUTOMATIZÁLÁS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="0,0,0,8"/>
                 <WrapPanel>
                   <CheckBox Name="SafetyCheck" Content="Torzításvédelem" IsChecked="True"/>
                   <CheckBox Name="AutoProfileCheck" Content="Automatikus profilváltás"/>
@@ -735,25 +744,25 @@ $xaml = @'
             </Grid>
           </Border>
 
-          <Border Background="#111113" CornerRadius="18" Padding="22,15" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="22,15" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <StackPanel>
               <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="10 SÁVOS HANGSZÍNSZABÁLYZÓ" FontSize="11" FontWeight="Bold" Foreground="#9A7C80"/>
+                <TextBlock Text="10 SÁVOS HANGSZÍNSZABÁLYZÓ" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}"/>
                 <TextBlock Text="-12 dB  •  +12 dB" HorizontalAlignment="Right" Foreground="#64748B" FontSize="11"/>
               </DockPanel>
-              <Border Background="#0B0B0D" CornerRadius="12" Padding="12">
+              <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="12" Padding="12">
                 <UniformGrid Name="EqPanel" Rows="1" Columns="10"/>
               </Border>
             </StackPanel>
           </Border>
 
-          <Border Background="#111113" CornerRadius="18" Padding="20,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20,17" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <TextBlock Text="PROFILOK ÉS RENDSZERESZKÖZÖK" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="2,0,0,12"/>
+              <TextBlock Text="PROFILOK ÉS RENDSZERESZKÖZÖK" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="2,0,0,12"/>
               <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
-                <Border Background="#0B0B0D" CornerRadius="13" Padding="14,12" BorderBrush="#242429" BorderThickness="1">
+                <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="13" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                   <StackPanel>
                     <TextBlock Text="PROFILKEZELÉS" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
                     <WrapPanel>
@@ -765,7 +774,7 @@ $xaml = @'
                     </WrapPanel>
                   </StackPanel>
                 </Border>
-                <Border Grid.Column="2" Background="#0B0B0D" CornerRadius="13" Padding="14,12" BorderBrush="#242429" BorderThickness="1">
+                <Border Grid.Column="2" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="13" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                   <StackPanel>
                     <TextBlock Text="RENDSZERESZKÖZÖK" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
                     <WrapPanel>
@@ -856,13 +865,19 @@ function Set-AppTheme([string]$themeName) {
     $theme = switch ($themeName) {
         { $_ -in @('Fekete és kék','Black & Blue') }     { @{ Accent='#22A7FF'; AccentDark='#0057B8'; Page='#071521'; Hover='#102D42' } }
         { $_ -in @('Grafit és zöld','Graphite & Green') } { @{ Accent='#35D07F'; AccentDark='#087443'; Page='#092018'; Hover='#123526' } }
+        'Fekete és lila'    { @{ Accent='#A855F7'; AccentDark='#6D28D9'; Page='#180A25'; Hover='#32184A' } }
+        'Éjkék és türkiz'   { @{ Accent='#22D3EE'; AccentDark='#0E7490'; Page='#061C2A'; Hover='#103746' } }
+        'Grafit és narancs' { @{ Accent='#FB923C'; AccentDark='#C2410C'; Page='#241307'; Hover='#422414'; Contrast='#111113' } }
+        'Fekete és arany'   { @{ Accent='#F5C451'; AccentDark='#A16207'; Page='#211804'; Hover='#3B2D10'; Contrast='#111113' } }
+        'OLED fekete'       { @{ Accent='#F8FAFC'; AccentDark='#64748B'; Page='#000000'; Hover='#202024'; Base='#000000'; Surface='#050505'; SurfaceAlt='#000000'; Control='#101012'; Border='#29292E'; Contrast='#09090B' } }
+        'Világos'           { @{ Accent='#2563EB'; AccentDark='#1D4ED8'; Page='#E8EEF8'; Hover='#3B82F6'; Base='#F8FAFC'; Surface='#FFFFFF'; SurfaceAlt='#F1F5F9'; Control='#E9EEF5'; Border='#CBD5E1'; Primary='#0F172A'; Secondary='#334155'; Muted='#64748B'; Section='#475569' } }
         default            { @{ Accent='#FF4057'; AccentDark='#8B0017'; Page='#20090B'; Hover='#3A1016' } }
     }
 
     $accentColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.Accent)
     $accentDarkColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.AccentDark)
     $pageColor = [Windows.Media.ColorConverter]::ConvertFromString($theme.Page)
-    $baseColor = [Windows.Media.ColorConverter]::ConvertFromString('#070707')
+    $baseColor = [Windows.Media.ColorConverter]::ConvertFromString($(if ($theme.Base) { $theme.Base } else { '#070707' }))
 
     $accentGradient = [Windows.Media.LinearGradientBrush]::new()
     $accentGradient.StartPoint = [Windows.Point]::new(0, 0)
@@ -881,11 +896,23 @@ function Set-AppTheme([string]$themeName) {
 
     $window.Resources['AccentTextBrush'] = [Windows.Media.SolidColorBrush]::new($accentColor)
     $window.Resources['HoverBrush'] = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString($theme.Hover))
+    $palette = @{
+        Surface=$(if($theme.Surface){$theme.Surface}else{'#111113'}); SurfaceAlt=$(if($theme.SurfaceAlt){$theme.SurfaceAlt}else{'#0B0B0D'})
+        Control=$(if($theme.Control){$theme.Control}else{'#17171B'}); Border=$(if($theme.Border){$theme.Border}else{'#29292E'})
+        Primary=$(if($theme.Primary){$theme.Primary}else{'#F8FAFC'}); Secondary=$(if($theme.Secondary){$theme.Secondary}else{'#CBD5E1'})
+        Muted=$(if($theme.Muted){$theme.Muted}else{'#64748B'}); Section=$(if($theme.Section){$theme.Section}else{'#9A7C80'})
+        Contrast=$(if($theme.Contrast){$theme.Contrast}else{'#FFFFFF'})
+    }
+    foreach($entry in $palette.GetEnumerator()) { $window.Resources[($entry.Key + 'Brush')] = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString([string]$entry.Value)) }
     foreach ($label in $script:eqValueLabels) { $label.Foreground = $window.Resources['AccentTextBrush'] }
     $script:themeName = $themeName
 }
 
-$script:themeNames = @('Fekete és piros', 'Fekete és kék', 'Grafit és zöld')
+$script:themeNames = @(
+    'Fekete és piros', 'Fekete és kék', 'Grafit és zöld',
+    'Fekete és lila', 'Éjkék és türkiz', 'Grafit és narancs',
+    'Fekete és arany', 'OLED fekete', 'Világos'
+)
 foreach ($themeName in $script:themeNames) { [void]$ThemeCombo.Items.Add($themeName) }
 $ThemeCombo.SelectedIndex = 0
 $ThemeCombo.Add_SelectionChanged({
@@ -1620,6 +1647,8 @@ function Show-ChangelogWindow {
 V1.3.4 – PROFILNEVEK ÉS VERZIÓZÁS JAVÍTÁSA
 • A két FiveM-profil neve mostantól egyértelműen FiveM RP és FiveM PvP.
 • Új verziószám biztosítja, hogy minden V1.3.3-telepítés érzékelje a frissítést.
+• Hat új megjelenés: fekete–lila, éjkék–türkiz, grafit–narancs, fekete–arany, OLED és világos.
+• A világos és OLED mód a teljes főfelület színeit, kártyáit, gombjait és szövegeit egységesen kezeli.
 
 V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
 • Egységesebb, közérthetőbb magyar felület és korszerűbb kezelőszövegek.
@@ -1767,7 +1796,8 @@ function Test-ImportedProfile($state) {
         $gain = [double]$value
         if ([double]::IsNaN($gain) -or [double]::IsInfinity($gain) -or $gain -lt -12 -or $gain -gt 12) { throw 'Minden EQ-értéknek -12 és +12 dB között kell lennie.' }
     }
-    if ($state.theme -and $script:themeNames -notcontains [string]$state.theme) { throw 'Ismeretlen témabeállítás található a profilban.' }
+    $allowedThemes = @($script:themeNames) + @('Black & Red','Black & Blue','Graphite & Green')
+    if ($state.theme -and $allowedThemes -notcontains [string]$state.theme) { throw 'Ismeretlen témabeállítás található a profilban.' }
 }
 
 $ImportButton.Add_Click({

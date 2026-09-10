@@ -4,6 +4,7 @@ Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
 
 A FiveM-profilok egyértelműen FiveM RP és FiveM PvP néven jelennek meg.
+Kilenc választható megjelenés érhető el, köztük OLED fekete és teljes világos mód.
 
 Az egyedi SoundLift ikon az ablakban, a tálcán és a Windowszal
 induló parancsikonon is megjelenik.
