@@ -594,12 +594,12 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
-          <TextBlock Name="StatusText" Text="Equalizer APO keresése..." FontSize="13" FontWeight="SemiBold" Foreground="#E2E8F0"/>
-          <TextBlock Name="DeviceText" Text="Aktív hangkimenet: keresés..." FontSize="12" Foreground="#8B9BB4" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+          <TextBlock Name="StatusText" Text="A hangrendszer ellenőrzése folyamatban…" FontSize="13" FontWeight="SemiBold" Foreground="#E2E8F0"/>
+          <TextBlock Name="DeviceText" Text="Aktív hangkimenet észlelése…" FontSize="12" Foreground="#8B9BB4" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
       </Border>
     </Grid>
@@ -610,20 +610,20 @@ $xaml = @'
       <Border Grid.Column="0" Background="#111113" CornerRadius="18" Padding="16" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="P R O F I L O K" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="5,2,0,13"/>
+          <TextBlock Text="HANGPROFILOK" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="5,2,0,13"/>
           <StackPanel Grid.Row="1">
             <Button Name="MusicButton" Content="♫   Zene"/>
-            <Button Name="GameButton" Content="◆   FiveM RP"/>
-            <Button Name="CombatButton" Content="⌁   FiveM harc"/>
-            <Button Name="R6Button" Content="◎   Rainbow Six"/>
+            <Button Name="GameButton" Content="◆   FiveM – szerepjáték"/>
+            <Button Name="CombatButton" Content="⌁   FiveM – harc"/>
+            <Button Name="R6Button" Content="◎   Rainbow Six Siege"/>
             <Button Name="DiscordButton" Content="◉   Discord"/>
             <Button Name="MovieButton" Content="▶   Film"/>
-            <Button Name="HeavyButton" Content="ϟ   Brutál basszus"/>
-            <Button Name="ResetButton" Content="↺   Alaphelyzet"/>
+            <Button Name="HeavyButton" Content="ϟ   Erőteljes basszus"/>
+            <Button Name="ResetButton" Content="↺   Alapbeállítások"/>
           </StackPanel>
           <StackPanel Grid.Row="2">
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
-            <TextBlock Text="T É M A" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
+            <TextBlock Text="MEGJELENÉS" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
             <ComboBox Name="ThemeCombo" Height="34" Margin="0,0,0,9" Padding="8,3"
                       Background="#17171B" Foreground="#F8FAFC" BorderBrush="#3F3F46" FontWeight="SemiBold">
               <ComboBox.Template>
@@ -675,15 +675,15 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.2.0" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.3" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
-            <Button Name="LicenseButton" Content="🔑  Licenc aktiválása" Style="{StaticResource UtilityButton}"/>
-            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Custom" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
-            <Button Name="AboutButton" Content="ⓘ  Névjegy és Discord" Style="{StaticResource UtilityButton}"/>
-            <Button Name="PrivacyButton" Content="🛡  Adatvédelem" Style="{StaticResource UtilityButton}"/>
-            <Button Name="ApplyButton" Content="ALKALMAZÁS" Style="{StaticResource PrimaryButton}"/>
+            <Button Name="LicenseButton" Content="◇  Licenc kezelése" Style="{StaticResource UtilityButton}"/>
+            <TextBlock Name="ActiveProfileText" Text="Aktív profil: Egyéni" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
+            <Button Name="AboutButton" Content="ⓘ  A SoundLiftről és Discord" Style="{StaticResource UtilityButton}"/>
+            <Button Name="PrivacyButton" Content="◈  Adatvédelem" Style="{StaticResource UtilityButton}"/>
+            <Button Name="ApplyButton" Content="BEÁLLÍTÁSOK ALKALMAZÁSA" Style="{StaticResource PrimaryButton}"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -694,14 +694,14 @@ $xaml = @'
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <DockPanel><TextBlock Text="Hangerő-erősítés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Hangerő erősítése" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="VolumeValue" Text="100%" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="VolumeSlider" Minimum="0" Maximum="300" Value="100" TickFrequency="5" IsSnapToTickEnabled="True"/>
-                <TextBlock Text="Teljes tartomány: némítás–300%" FontSize="11" Foreground="#64748B"/>
+                <TextBlock Text="0% = némítás  •  100% = eredeti hangerő  •  maximum 300%" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
               <StackPanel Grid.Column="2">
-                <DockPanel><TextBlock Text="Bass Boost" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
+                <DockPanel><TextBlock Text="Mélyhangkiemelés" FontSize="15" FontWeight="SemiBold"/><TextBlock Name="BassValue" Text="6 dB" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/></DockPanel>
                 <Slider Name="BassSlider" Minimum="0" Maximum="24" Value="6" TickFrequency="1" IsSnapToTickEnabled="True"/>
-                <TextBlock Text="Többsávos mélyhangkiemelés" FontSize="11" Foreground="#64748B"/>
+                <TextBlock Text="A basszus ereje 0 és 24 dB között" FontSize="11" Foreground="#64748B"/>
               </StackPanel>
             </Grid>
           </Border>
@@ -710,7 +710,7 @@ $xaml = @'
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <DockPanel>
-                <TextBlock Text="Basszus középfrekvencia" FontSize="15" FontWeight="SemiBold"/>
+                <TextBlock Text="Basszus karaktere" FontSize="15" FontWeight="SemiBold"/>
                 <TextBlock Name="FrequencyValue" Text="75 Hz" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Right"/>
               </DockPanel>
               <Slider Name="FrequencySlider" Grid.Row="1" Minimum="40" Maximum="160" Value="75" TickFrequency="5" IsSnapToTickEnabled="True"/>
@@ -721,12 +721,12 @@ $xaml = @'
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="V É D E L E M   É S   A U T O M A T I Z Á L Á S" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="0,0,0,8"/>
+                <TextBlock Text="VÉDELEM ÉS AUTOMATIZÁLÁS" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="0,0,0,8"/>
                 <WrapPanel>
                   <CheckBox Name="SafetyCheck" Content="Torzításvédelem" IsChecked="True"/>
                   <CheckBox Name="AutoProfileCheck" Content="Automatikus profilváltás"/>
-                  <CheckBox Name="InstantCheck" Content="Azonnali alkalmazás"/>
-                  <CheckBox Name="StartupCheck" Content="Indulás a Windowszal"/>
+                  <CheckBox Name="InstantCheck" Content="Módosítások azonnali alkalmazása"/>
+                  <CheckBox Name="StartupCheck" Content="Automatikus indítás a Windowszal"/>
                 </WrapPanel>
               </StackPanel>
               <Border Grid.Column="1" Background="#12291F" CornerRadius="9" Padding="12,7" VerticalAlignment="Center">
@@ -738,7 +738,7 @@ $xaml = @'
           <Border Background="#111113" CornerRadius="18" Padding="22,15" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <StackPanel>
               <DockPanel Margin="0,0,0,10">
-                <TextBlock Text="1 0   S Á V O S   E Q U A L I Z E R" FontSize="11" FontWeight="Bold" Foreground="#9A7C80"/>
+                <TextBlock Text="10 SÁVOS HANGSZÍNSZABÁLYZÓ" FontSize="11" FontWeight="Bold" Foreground="#9A7C80"/>
                 <TextBlock Text="-12 dB  •  +12 dB" HorizontalAlignment="Right" Foreground="#64748B" FontSize="11"/>
               </DockPanel>
               <Border Background="#0B0B0D" CornerRadius="12" Padding="12">
@@ -750,18 +750,18 @@ $xaml = @'
           <Border Background="#111113" CornerRadius="18" Padding="20,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <TextBlock Text="B E Á L L Í T Á S O K   É S   E S Z K Ö Z Ö K" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="2,0,0,12"/>
+              <TextBlock Text="PROFILOK ÉS RENDSZERESZKÖZÖK" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="2,0,0,12"/>
               <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
                 <Border Background="#0B0B0D" CornerRadius="13" Padding="14,12" BorderBrush="#242429" BorderThickness="1">
                   <StackPanel>
                     <TextBlock Text="PROFILKEZELÉS" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
                     <WrapPanel>
-                      <Button Name="SaveButton" Content="＋  Saját mentés" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="LoadButton" Content="↗  Saját betöltés" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ExportButton" Content="Export" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ImportButton" Content="Import" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="UndoButton" Content="↶  Visszavonás" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="SaveButton" Content="＋  Egyéni profil mentése" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="LoadButton" Content="↗  Mentett profil betöltése" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ExportButton" Content="Profil exportálása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ImportButton" Content="Profil importálása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="UndoButton" Content="↶  Utolsó módosítás visszavonása" Style="{StaticResource UtilityButton}"/>
                     </WrapPanel>
                   </StackPanel>
                 </Border>
@@ -769,14 +769,14 @@ $xaml = @'
                   <StackPanel>
                     <TextBlock Text="RENDSZERESZKÖZÖK" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
                     <WrapPanel>
-                      <Button Name="TestButton" Content="◉  60 Hz teszt" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="DeviceButton" Content="▣  Hangeszközök" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="DiagnosticsButton" Content="✓  Diagnosztika" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="RepairApoButton" Content="🛠  APO automatikus javítása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ReportProblemButton" Content="⚑  Hiba jelentése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="UpdateButton" Content="↻  Frissítések" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="RollbackButton" Content="↶  Előző verzió visszaállítása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ChangelogButton" Content="≡  Változások" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="TestButton" Content="◉  Basszus tesztelése (60 Hz)" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="DeviceButton" Content="▣  APO hangeszközök beállítása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="DiagnosticsButton" Content="✓  Rendszer ellenőrzése" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="RepairApoButton" Content="⟳  APO-kapcsolat helyreállítása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ReportProblemButton" Content="⚑  Hibajelentés küldése" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="UpdateButton" Content="↻  Frissítés keresése" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="RollbackButton" Content="↶  Korábbi verzió visszaállítása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ChangelogButton" Content="≡  Frissítési előzmények" Style="{StaticResource UtilityButton}"/>
                     </WrapPanel>
                   </StackPanel>
                 </Border>
@@ -827,7 +827,7 @@ $SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
 $CopySupportIdButton.Add_Click({
     try {
         [Windows.Forms.Clipboard]::SetText((Get-SoundLiftSupportId))
-        $StatusText.Text = 'OK - Támogatási ID a vágólapra másolva'
+        $StatusText.Text = 'Támogatási ID a vágólapra másolva'
     } catch { [System.Windows.MessageBox]::Show('A támogatási ID most nem másolható a vágólapra.', 'SoundLift', 'OK', 'Warning') | Out-Null }
 })
 
@@ -854,8 +854,8 @@ for ($i = 0; $i -lt $script:eqBands.Count; $i++) {
 
 function Set-AppTheme([string]$themeName) {
     $theme = switch ($themeName) {
-        'Black & Blue'     { @{ Accent='#22A7FF'; AccentDark='#0057B8'; Page='#071521'; Hover='#102D42' } }
-        'Graphite & Green' { @{ Accent='#35D07F'; AccentDark='#087443'; Page='#092018'; Hover='#123526' } }
+        { $_ -in @('Fekete és kék','Black & Blue') }     { @{ Accent='#22A7FF'; AccentDark='#0057B8'; Page='#071521'; Hover='#102D42' } }
+        { $_ -in @('Grafit és zöld','Graphite & Green') } { @{ Accent='#35D07F'; AccentDark='#087443'; Page='#092018'; Hover='#123526' } }
         default            { @{ Accent='#FF4057'; AccentDark='#8B0017'; Page='#20090B'; Hover='#3A1016' } }
     }
 
@@ -885,13 +885,13 @@ function Set-AppTheme([string]$themeName) {
     $script:themeName = $themeName
 }
 
-$script:themeNames = @('Black & Red', 'Black & Blue', 'Graphite & Green')
+$script:themeNames = @('Fekete és piros', 'Fekete és kék', 'Grafit és zöld')
 foreach ($themeName in $script:themeNames) { [void]$ThemeCombo.Items.Add($themeName) }
 $ThemeCombo.SelectedIndex = 0
 $ThemeCombo.Add_SelectionChanged({
     if ($ThemeCombo.SelectedItem) { Set-AppTheme ([string]$ThemeCombo.SelectedItem) }
 })
-Set-AppTheme 'Black & Red'
+Set-AppTheme 'Fekete és piros'
 
 function Set-EqValues([double[]]$values) {
     for ($i = 0; $i -lt $script:eqSliders.Count; $i++) { $script:eqSliders[$i].Value = $values[$i] }
@@ -908,13 +908,18 @@ function Update-Labels {
     } elseif ($roughPeak -gt 6) {
         $ClipText.Text = 'TORZÍTÁSVESZÉLY'; $ClipText.Foreground = '#FB7185'
     } else {
-        $ClipText.Text = 'OK'; $ClipText.Foreground = '#FBBF24'
+        $ClipText.Text = 'VÉDELEM NÉLKÜL'; $ClipText.Foreground = '#FBBF24'
     }
 }
 
 function Set-Profile([int]$volume, [int]$bass, [int]$frequency, [bool]$safe = $true) {
     $VolumeSlider.Value = $volume; $BassSlider.Value = $bass; $FrequencySlider.Value = $frequency
-    $SafetyCheck.IsChecked = $safe; $ActiveProfileText.Text = "Aktív profil: $script:activeProfile"; Update-Labels
+    $displayName = switch ($script:activeProfile) {
+        'Music' { 'Zene' } 'FiveM RP' { 'FiveM – szerepjáték' } 'FiveM Combat' { 'FiveM – harc' }
+        'R6' { 'Rainbow Six Siege' } 'Movie' { 'Film' } 'Heavy' { 'Erőteljes basszus' }
+        'Custom' { 'Egyéni' } default { [string]$script:activeProfile }
+    }
+    $SafetyCheck.IsChecked = $safe; $ActiveProfileText.Text = "Aktív profil: $displayName"; Update-Labels
 }
 
 $VolumeSlider.Add_ValueChanged({ Update-Labels })
@@ -932,10 +937,10 @@ $ResetButton.Add_Click({ $script:activeProfile = 'Custom'; Set-Profile 100 0 75 
 
 $apoDirectory = Get-ApoConfigDirectory
 if ($apoDirectory) {
-    $StatusText.Text = "OK - Equalizer APO megtalálva, készen áll"
+    $StatusText.Text = "Készen áll • Az Equalizer APO megfelelően csatlakozik"
     $StatusBorder.Background = '#143126'
 } else {
-    $StatusText.Text = "FIGYELEM - Equalizer APO nincs telepítve, lásd a TELEPITES.txt fájlt"
+    $StatusText.Text = "Beavatkozás szükséges • Az Equalizer APO nem található; lásd a TELEPÍTÉS.txt fájlt"
     $StatusBorder.Background = '#3A2812'
 }
 
@@ -1042,7 +1047,7 @@ $ApplyButton.Add_Click({
         $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
         $mainText = $mainText.TrimEnd() + "`r`n`r`n# SoundLift`r`n$includeLine`r`n"
         Write-TextWithRetry $mainConfig $mainText
-        $StatusText.Text = "OK - Beállítás alkalmazva: $([int]$volumePercent)% / $([int]$bassDb) dB"
+        $StatusText.Text = "Beállítások alkalmazva • $([int]$volumePercent)% hangerő • $([int]$bassDb) dB basszus"
         $StatusBorder.Background = '#143126'
     } catch {
         Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='apply_audio_config' } -ErrorRecord $_
@@ -1074,9 +1079,9 @@ function Set-AppState($state) {
     if ($state.eq -and $state.eq.Count -eq 10) { Set-EqValues ([double[]]$state.eq) }
     if ($null -ne $state.autoProfile) { $AutoProfileCheck.IsChecked = [bool]$state.autoProfile }
     if ($null -ne $state.instant) { $InstantCheck.IsChecked = [bool]$state.instant }
-    if ($state.theme -and $script:themeNames -contains [string]$state.theme) {
-        $ThemeCombo.SelectedItem = [string]$state.theme
-        Set-AppTheme ([string]$state.theme)
+    if ($state.theme) {
+        $savedTheme = switch ([string]$state.theme) { 'Black & Red' {'Fekete és piros'} 'Black & Blue' {'Fekete és kék'} 'Graphite & Green' {'Grafit és zöld'} default {[string]$state.theme} }
+        if ($script:themeNames -contains $savedTheme) { $ThemeCombo.SelectedItem = $savedTheme; Set-AppTheme $savedTheme }
     }
     if ($null -ne $state.onboardingCompleted) { $script:onboardingCompleted = [bool]$state.onboardingCompleted }
 }
@@ -1121,9 +1126,9 @@ function Get-DiagnosticsReport {
             try {
                 $mainText = [IO.File]::ReadAllText($mainConfig)
                 if ($mainText -match '(?im)^\s*Include:\s*SoundLift\.txt\s*$') {
-                    $lines.Add('[OK] A booster Include sora aktív a config.txt fájlban.')
+                    $lines.Add('[OK] A SoundLift kapcsolata aktív a config.txt fájlban.')
                 } else {
-                    $lines.Add('[HIBA] Hiányzik a booster Include sora a config.txt fájlból.')
+                    $lines.Add('[HIBA] Hiányzik a SoundLift kapcsolata a config.txt fájlból.')
                     $errors++
                 }
             } catch {
@@ -1139,17 +1144,17 @@ function Get-DiagnosticsReport {
             try {
                 $boosterText = [IO.File]::ReadAllText($boosterConfig)
                 if ($boosterText -match '(?im)^\s*Preamp:' -and $boosterText -match '(?im)^\s*Filter(?:\s+\d+)?:') {
-                    $lines.Add('[OK] A booster saját konfigurációja érvényesnek tűnik.')
+                    $lines.Add('[OK] A SoundLift hangbeállításai érvényesek.')
                 } else {
-                    $lines.Add('[FIGYELEM] A booster konfigurációja hiányos. Nyomd meg az ALKALMAZÁS gombot.')
+                    $lines.Add('[FIGYELEM] A SoundLift hangbeállításai hiányosak. Kattints a Beállítások alkalmazása gombra.')
                     $warnings++
                 }
             } catch {
-                $lines.Add("[HIBA] A booster konfigurációja nem olvasható: $($_.Exception.Message)")
+                $lines.Add("[HIBA] A SoundLift hangbeállításai nem olvashatók: $($_.Exception.Message)")
                 $errors++
             }
         } else {
-            $lines.Add('[FIGYELEM] A booster konfigurációja még nem létezik. Válassz profilt, majd alkalmazd.')
+            $lines.Add('[FIGYELEM] Még nincs alkalmazott SoundLift-beállítás. Válassz profilt, majd alkalmazd.')
             $warnings++
         }
     } else {
@@ -1224,7 +1229,7 @@ function Show-DiagnosticsWindow {
             }
         }
         if ($copied) {
-            $StatusText.Text = 'OK - Diagnosztikai jelentés a vágólapra másolva'
+            $StatusText.Text = 'A diagnosztikai jelentés a vágólapra került'
         } else {
             [System.Windows.MessageBox]::Show('A Windows vágólapja jelenleg foglalt. Zárd be a vágólapot használó programot, majd próbáld újra.', 'Másolási hiba', 'OK', 'Warning') | Out-Null
         }
@@ -1253,7 +1258,7 @@ function Repair-SoundLiftApoInclude {
 
         $mainText = Read-TextWithRetry $mainConfig
         if ($mainText -match '(?im)^\s*Include:\s*SoundLift\.txt\s*$') {
-            $StatusText.Text = 'OK - Az Equalizer APO Include sora már helyes'
+            $StatusText.Text = 'Az APO-kapcsolat már megfelelő, nincs szükség javításra'
             $StatusBorder.Background = '#143126'
             [System.Windows.MessageBox]::Show('Nincs szükség javításra: a SoundLift Include sora már megfelelő.', 'SoundLift – APO javítás', 'OK', 'Information') | Out-Null
             return
@@ -1268,13 +1273,13 @@ function Repair-SoundLiftApoInclude {
 
         $verified = Read-TextWithRetry $mainConfig
         if ($verified -notmatch '(?im)^\s*Include:\s*SoundLift\.txt\s*$') { throw 'A javítás ellenőrzése sikertelen volt.' }
-        $StatusText.Text = 'OK - Equalizer APO Include sor automatikusan javítva'
+        $StatusText.Text = 'Az APO-kapcsolat sikeresen helyreállt'
         $StatusBorder.Background = '#143126'
         Write-SoundLiftLog -Category startup -EventName 'apo_include_repaired' -Data @{ result='success' }
         [System.Windows.MessageBox]::Show("A SoundLift Include sora sikeresen helyreállt.`n`nAz eredeti config.txt biztonsági mentése is elkészült.", 'SoundLift – APO javítás', 'OK', 'Information') | Out-Null
     } catch {
         Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='apo_include_repair' } -ErrorRecord $_
-        $StatusText.Text = "HIBA - APO javítás sikertelen: $($_.Exception.Message)"
+        $StatusText.Text = "Az APO-kapcsolat nem javítható: $($_.Exception.Message)"
         $StatusBorder.Background = '#4A1F2D'
         [System.Windows.MessageBox]::Show("A javítás nem sikerült:`n$($_.Exception.Message)", 'SoundLift – APO javítás', 'OK', 'Error') | Out-Null
     }
@@ -1314,7 +1319,7 @@ function Show-ProblemReportWindow {
             $submittedDescription = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
             Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ user_description=$submittedDescription; diagnostic_report=$report; submitted_by_user='true' }
             $sent = Send-SoundLiftPendingLogs
-            $StatusText.Text = if ($sent) { 'OK - A hibajelentés elküldve' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
+            $StatusText.Text = if ($sent) { 'A hibajelentést sikeresen elküldtük' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
             $StatusBorder.Background = if ($sent) { '#143126' } else { '#4A3514' }
             $dialog.Close()
             $resultText = if ($sent) { 'A jelentést sikeresen elküldtük.' } else { 'A jelentést biztonságosan elmentettük, és a következő indításkor automatikusan újraküldjük.' }
@@ -1385,7 +1390,7 @@ $RollbackButton.Add_Click({ Restore-SoundLiftPreviousVersion })
 function Update-DeveloperControls {
     $displayType = switch ($script:currentLicenseType) { 'developer' { 'fejlesztői' } 'customer' { 'vásárlói' } default { 'ingyenes' } }
     $LicenseStatusText.Text = "Licenc: $displayType"
-    $LicenseButton.Content = if ($script:currentLicenseType -eq 'free') { '🔑  Licenc aktiválása' } else { '🔑  Licenc cseréje' }
+    $LicenseButton.Content = if ($script:currentLicenseType -eq 'free') { '◇  Licenc aktiválása' } else { '◇  Licenc kezelése' }
     if ($script:currentLicenseType -eq 'developer') {
         $RollbackButton.Visibility = 'Visible'
         $RollbackButton.IsEnabled = $null -ne (Get-SoundLiftRollbackState)
@@ -1398,7 +1403,7 @@ $LicenseButton.Add_Click({
     if (Confirm-SoundLiftLicense -PromptForKey) {
         Update-DeveloperControls
         if ($script:currentLicenseType -ne 'free') {
-            $StatusText.Text = "OK - $($LicenseStatusText.Text) aktiválva"
+            $StatusText.Text = "$($LicenseStatusText.Text) aktiválva"
         }
     }
 })
@@ -1553,7 +1558,7 @@ function Show-AboutWindow {
     $content = [Windows.Controls.StackPanel]::new()
     $brand = [Windows.Controls.TextBlock]::new(); $brand.Text = 'SOUNDLIFT'; $brand.FontSize = 29; $brand.FontWeight = 'Bold'; $brand.Foreground = $window.Resources['AccentTextBrush']
     $version = [Windows.Controls.TextBlock]::new(); $version.Text = "Windows rendszerhang-kezelő  •  V$script:appVersion"; $version.FontSize = 12; $version.Foreground = [Windows.Media.Brushes]::Gray; $version.Margin = [Windows.Thickness]::new(0,5,0,20)
-    $description = [Windows.Controls.TextBlock]::new(); $description.Text = 'A SoundLift egy ingyenes Windows-hangvezérlő, amellyel profilok, basszuskiemelés, tízsávos equalizer és akár 300%-os hangerő-erősítés használható az Equalizer APO segítségével.'; $description.TextWrapping = 'Wrap'; $description.FontSize = 14; $description.LineHeight = 22; $description.Foreground = [Windows.Media.Brushes]::LightGray
+    $description = [Windows.Controls.TextBlock]::new(); $description.Text = 'A SoundLift egy modern Windows-hangvezérlő. Hangprofilokat, mélyhangkiemelést, tízsávos hangszínszabályzót és akár 300%-os hangerő-erősítést biztosít az Equalizer APO segítségével.'; $description.TextWrapping = 'Wrap'; $description.FontSize = 14; $description.LineHeight = 22; $description.Foreground = [Windows.Media.Brushes]::LightGray
     $creator = [Windows.Controls.TextBlock]::new(); $creator.Text = "Készítette: ɪᴅᴋʙʀᴏᴏ`nDiscord: idkbroo_6"; $creator.FontSize = 14; $creator.FontWeight = 'SemiBold'; $creator.Foreground = [Windows.Media.Brushes]::White; $creator.Margin = [Windows.Thickness]::new(0,22,0,18)
     $copyright = [Windows.Controls.TextBlock]::new(); $copyright.Text = '© 2026 idkbroo. Minden jog fenntartva. A SoundLift független projekt; az Equalizer APO neve és jogai a saját tulajdonosait illetik. A túl magas hangerő halláskárosodást okozhat.'; $copyright.TextWrapping = 'Wrap'; $copyright.FontSize = 11; $copyright.LineHeight = 17; $copyright.Foreground = [Windows.Media.Brushes]::Gray
     $content.Children.Add($brand) | Out-Null; $content.Children.Add($version) | Out-Null; $content.Children.Add($description) | Out-Null; $content.Children.Add($creator) | Out-Null; $content.Children.Add($copyright) | Out-Null
@@ -1613,6 +1618,7 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 function Show-ChangelogWindow {
     $changelog = @"
 V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
+• Egységesebb, közérthetőbb magyar felület és korszerűbb kezelőszövegek.
 • Élő letöltési százalék és külön telepítési állapot a frissítőablakban.
 • Újraindítás után ellenőrzi és visszajelzi a sikeresen telepített verziót.
 • Egygombos, biztonsági mentést készítő Equalizer APO Include-javítás.
@@ -1718,8 +1724,8 @@ function Show-FirstRunWizard {
     $pages = @(
         @{ Title='Üdv a SoundLiftben!'; Body="Ez a rövid beállítás segít, hogy a hangerő- és EQ-profilok valóban a megfelelő hangeszközön működjenek.`n`nA program az Equalizer APO-ra épül, ezért annak telepítve kell lennie." },
         @{ Title='Gyors rendszerellenőrzés'; Body="Equalizer APO: $apoState`nRendszergazdai futtatás: $adminState`nAktív hangkimenet: $output`n`nHa az APO nem található, telepítsd az Equalizer APO-t, majd indítsd újra ezt a programot." },
-        @{ Title='Műszaki naplózás'; Body="A SoundLift működési, frissítési és hibaeseményeket naplóz a %LOCALAPPDATA%\SoundLift\logs mappába. Ha a kiadásban be van állítva a naplószerver, a szükséges technikai eseményeket hibakeresés és biztonság céljából annak is elküldi.`n`nNem küldünk nyers licenckulcsot, Windows-felhasználónevet, teljes gépazonosítót vagy kattintási előzményt." },
-        @{ Title='Már majdnem kész'; Body="1. Nyisd meg a Hangeszközök menüt.`n2. Pipáld ki az aktív lejátszóeszközt.`n3. Indítsd újra a Windowst, ha az APO ezt kéri.`n4. Válassz egy profilt, majd nyomd meg az ALKALMAZÁS gombot.`n`nA Diagnosztika gomb később segít a hibakeresésben." }
+        @{ Title='Adatvédelem és műszaki naplók'; Body="A SoundLift működési, frissítési és hibaeseményeket naplóz a %LOCALAPPDATA%\SoundLift\logs mappába. Ha elérhető a támogatási szolgáltatás, a szükséges technikai eseményeket hibakeresési és biztonsági célból továbbítja.`n`nLicenckulcsot, Windows-felhasználónevet, teljes gépazonosítót és kattintási előzményt nem küldünk. A teljes leírás bármikor megnyitható az Adatvédelem menüben." },
+        @{ Title='A beállítás befejezése'; Body="1. Nyisd meg az APO hangeszközök beállítását.`n2. Jelöld ki az aktív lejátszóeszközt.`n3. Ha az Equalizer APO kéri, indítsd újra a Windowst.`n4. Válassz hangprofilt, majd kattints a Beállítások alkalmazása gombra.`n`nHa valami nem működik, használd a Rendszer ellenőrzése vagy az APO-kapcsolat helyreállítása gombot." }
     )
     $wizardState = @{ Page = 0 }
     $refreshPage = { $page = [int]$wizardState.Page; $stepText.Text = "ELSŐ INDÍTÁS  •  $($page + 1) / $($pages.Count)"; $titleText.Text = $pages[$page].Title; $bodyText.Text = $pages[$page].Body; $back.IsEnabled = $page -gt 0; $next.Content = if ($page -eq $pages.Count - 1) { 'Befejezés' } else { 'Tovább' } }
@@ -1730,10 +1736,10 @@ function Show-FirstRunWizard {
 
 $SaveButton.Add_Click({
     (Get-AppState) | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $customProfilePath -Encoding UTF8
-    $StatusText.Text = 'OK - Saját profil elmentve'
+    $StatusText.Text = 'Az egyéni profil mentése elkészült'
 })
 $LoadButton.Add_Click({
-    if (Test-Path $customProfilePath) { Set-AppState (Get-Content -LiteralPath $customProfilePath -Raw | ConvertFrom-Json); $StatusText.Text = 'OK - Saját profil betöltve' }
+    if (Test-Path $customProfilePath) { Set-AppState (Get-Content -LiteralPath $customProfilePath -Raw | ConvertFrom-Json); $StatusText.Text = 'A mentett egyéni profil betöltve' }
 })
 $ExportButton.Add_Click({
     $dialog = New-Object Microsoft.Win32.SaveFileDialog
@@ -1770,7 +1776,7 @@ $ImportButton.Add_Click({
             $state = Get-Content -LiteralPath $file.FullName -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
             Test-ImportedProfile $state
             Set-AppState $state
-            $StatusText.Text = 'OK - Biztonságosan ellenőrzött profil importálva'
+            $StatusText.Text = 'A profil ellenőrzése és importálása sikerült'
         } catch {
             [System.Windows.MessageBox]::Show("A profil nem importálható:`n$($_.Exception.Message)", 'Érvénytelen profil', 'OK', 'Warning') | Out-Null
         }
@@ -1780,7 +1786,7 @@ $UndoButton.Add_Click({
     $apo = Get-ApoConfigDirectory
     if ($apo) {
         $own = Join-Path $apo 'SoundLift.txt'; $undo = "$own.undo"
-        if (Test-Path $undo) { [IO.File]::Copy($undo, $own, $true); $StatusText.Text = 'OK - Előző alkalmazott hang visszaállítva' }
+        if (Test-Path $undo) { [IO.File]::Copy($undo, $own, $true); $StatusText.Text = 'Az előző hangbeállítás visszaállítva' }
     }
 })
 $BypassButton.Add_Click({
@@ -1793,7 +1799,7 @@ $BypassButton.Add_Click({
             $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
             $text = $text.TrimEnd() + "`r`n"
             Write-TextWithRetry $main $text
-            $StatusText.Text = 'KIKAPCSOLVA - Nyomj Alkalmazást a visszakapcsoláshoz'; $StatusBorder.Background = '#4A1F2D'
+            $StatusText.Text = 'A SoundLift hanghatásai ki vannak kapcsolva'; $StatusBorder.Background = '#4A1F2D'
         }
     }
 })
@@ -1866,7 +1872,8 @@ $autoTimer.Add_Tick({
         elseif ($wanted -eq 'Music') { $MusicButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent))) }
         elseif ($wanted -eq 'Discord') { $DiscordButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent))) }
         Invoke-ApplyButton
-        $StatusText.Text = "AUTO - $wanted profil aktív"
+        $automaticName = if ($wanted -eq 'Music') { 'Zene' } elseif ($wanted -eq 'FiveM') { 'FiveM – szerepjáték' } else { $wanted }
+        $StatusText.Text = "Automatikus profilváltás • $automaticName profil aktív"
         if ($script:trayIcon) { $script:trayIcon.ShowBalloonTip(1800, 'Profilváltás', "$wanted profil bekapcsolva", [Windows.Forms.ToolTipIcon]::Info) }
     }
 })

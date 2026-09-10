@@ -55,6 +55,7 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - elküldés előtti, teljes diagnosztikai előnézetet biztosító hibajelentés
 - opcionális saját hibaleírás a diagnosztikai jelentésekben
 - alkalmazáson belül megnyitható, részletes adatvédelmi tájékoztató
+- egységes, közérthető magyar kezelőfelület és pontosabb állapotüzenetek
 
 ## Adatvédelem és naplók
 
