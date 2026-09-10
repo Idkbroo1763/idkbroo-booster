@@ -173,6 +173,7 @@ using System.Runtime.InteropServices;
 public static class AudioAppNative {
     [DllImport("user32.dll", SetLastError=true)] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint key);
     [DllImport("user32.dll", SetLastError=true)] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hWnd, int attribute, ref int value, int size);
 
     enum EDataFlow { eRender, eCapture, eAll }
     enum ERole { eConsole, eMultimedia, eCommunications }
@@ -615,15 +616,15 @@ $xaml = @'
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
             <TextBlock Text="T É M A" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
             <ComboBox Name="ThemeCombo" Height="34" Margin="0,0,0,9" Padding="8,3"
-                      Background="#F4F4F5" Foreground="#111113" BorderBrush="#52525B" FontWeight="SemiBold">
+                      Background="#17171B" Foreground="#F8FAFC" BorderBrush="#3F3F46" FontWeight="SemiBold">
               <ComboBox.Resources>
                 <Style TargetType="{x:Type ComboBoxItem}">
-                  <Setter Property="Foreground" Value="#111113"/>
-                  <Setter Property="Background" Value="#F4F4F5"/>
+                  <Setter Property="Foreground" Value="#F8FAFC"/>
+                  <Setter Property="Background" Value="#17171B"/>
                   <Setter Property="Padding" Value="9,6"/>
                   <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#FFD5DB"/></Trigger>
-                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#FFB3BE"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
+                    <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentTextBrush}"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
                   </Style.Triggers>
                 </Style>
               </ComboBox.Resources>
@@ -640,7 +641,7 @@ $xaml = @'
         </Grid>
       </Border>
 
-      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
         <StackPanel>
           <Border Background="#111113" CornerRadius="18" Padding="22,17" BorderBrush="#29292E" BorderThickness="1" Effect="{StaticResource CardShadow}" Margin="0,0,0,14">
             <Grid>
@@ -1677,6 +1678,14 @@ $script:hotKeyHook = [Windows.Interop.HwndSourceHook]{
 $window.Add_SourceInitialized({
     $helper = New-Object Windows.Interop.WindowInteropHelper($window)
     $script:windowHandle = $helper.Handle
+    # Use Windows' native dark title bar while keeping the normal resize,
+    # minimize, maximize and close controls. Attribute 20 is used by current
+    # Windows builds; 19 is the compatibility fallback for older Windows 10.
+    try {
+        $darkTitleBar = 1
+        $result = [AudioAppNative]::DwmSetWindowAttribute($script:windowHandle, 20, [ref]$darkTitleBar, 4)
+        if ($result -ne 0) { [void][AudioAppNative]::DwmSetWindowAttribute($script:windowHandle, 19, [ref]$darkTitleBar, 4) }
+    } catch { }
     $script:windowSource = [Windows.Interop.HwndSource]::FromHwnd($script:windowHandle)
     $script:windowSource.AddHook($script:hotKeyHook)
     for ($i = 0; $i -lt 6; $i++) { [void][AudioAppNative]::RegisterHotKey($script:windowHandle, 101 + $i, 0x0003, 0x31 + $i) }
