@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.2'
+$script:appVersion = '1.3.3'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -97,7 +97,10 @@ function Write-SoundLiftLog {
         Initialize-SoundLiftLogger
         if (-not $script:loggerInitialized) { return }
         $safeData = [ordered]@{}
-        foreach ($key in @($Data.Keys)) { $safeData[[string]$key] = ConvertTo-SoundLiftSafeText $Data[$key] }
+        foreach ($key in @($Data.Keys)) {
+            $limit = if ([string]$key -eq 'diagnostic_report') { 5000 } else { 1000 }
+            $safeData[[string]$key] = ConvertTo-SoundLiftSafeText $Data[$key] $limit
+        }
         if ($ErrorRecord) {
             $safeData.exception_type = ConvertTo-SoundLiftSafeText $ErrorRecord.Exception.GetType().FullName 200
             $safeData.message = ConvertTo-SoundLiftSafeText $ErrorRecord.Exception.Message 1000
@@ -116,14 +119,15 @@ function Write-SoundLiftLog {
 
 function Send-SoundLiftPendingLogs {
     Initialize-SoundLiftLogger
-    if (-not $script:loggerInitialized -or [string]::IsNullOrWhiteSpace($script:logApiUrl) -or -not (Test-Path $script:logQueueFile)) { return }
+    if (-not $script:loggerInitialized -or [string]::IsNullOrWhiteSpace($script:logApiUrl)) { return $false }
+    if (-not (Test-Path $script:logQueueFile)) { return $true }
     try {
         $allLines = @(Get-Content -LiteralPath $script:logQueueFile -ErrorAction Stop | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        if ($allLines.Count -eq 0) { return }
+        if ($allLines.Count -eq 0) { return $true }
         $take = [Math]::Min(50, $allLines.Count)
         $events = New-Object Collections.Generic.List[object]
         for ($i = 0; $i -lt $take; $i++) { try { $events.Add(($allLines[$i] | ConvertFrom-Json -ErrorAction Stop)) } catch { } }
-        if ($events.Count -eq 0) { [IO.File]::Delete($script:logQueueFile); return }
+        if ($events.Count -eq 0) { [IO.File]::Delete($script:logQueueFile); return $true }
         $headers = @{ 'User-Agent'="SoundLift/$($script:appVersion)" }
         if (-not [string]::IsNullOrWhiteSpace($script:logAnonKey)) { $headers.apikey=$script:logAnonKey; $headers.Authorization="Bearer $($script:logAnonKey)" }
         # Windows PowerShell 5.1 a Generic.List egyetlen elemes tartalmat
@@ -140,8 +144,10 @@ function Send-SoundLiftPendingLogs {
         if ($response.accepted -ge 0) {
             $remaining = if ($allLines.Count -gt $take) { @($allLines[$take..($allLines.Count - 1)]) } else { @() }
             [IO.File]::WriteAllLines($script:logQueueFile, $remaining, [Text.UTF8Encoding]::new($false))
+            return $true
         }
-    } catch { }
+        return $false
+    } catch { return $false }
 }
 
 function Complete-SoundLiftStartup {
@@ -496,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.3" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -588,7 +594,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -765,6 +771,8 @@ $xaml = @'
                       <Button Name="TestButton" Content="◉  60 Hz teszt" Style="{StaticResource UtilityButton}"/>
                       <Button Name="DeviceButton" Content="▣  Hangeszközök" Style="{StaticResource UtilityButton}"/>
                       <Button Name="DiagnosticsButton" Content="✓  Diagnosztika" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="RepairApoButton" Content="🛠  APO automatikus javítása" Style="{StaticResource UtilityButton}"/>
+                      <Button Name="ReportProblemButton" Content="⚑  Hiba jelentése" Style="{StaticResource UtilityButton}"/>
                       <Button Name="UpdateButton" Content="↻  Frissítések" Style="{StaticResource UtilityButton}"/>
                       <Button Name="RollbackButton" Content="↶  Előző verzió visszaállítása" Style="{StaticResource UtilityButton}"/>
                       <Button Name="ChangelogButton" Content="≡  Változások" Style="{StaticResource UtilityButton}"/>
@@ -811,7 +819,7 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 $SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
@@ -1077,6 +1085,7 @@ if (-not (Test-Path $appDataDirectory)) { [void][IO.Directory]::CreateDirectory(
 $settingsPath = Join-Path $appDataDirectory 'settings.json'
 $customProfilePath = Join-Path $appDataDirectory 'custom-profile.json'
 $onboardingMarkerPath = Join-Path $appDataDirectory 'first-run-completed.txt'
+$updateStatePath = Join-Path $appDataDirectory 'pending-update.json'
 
 function Get-DiagnosticsReport {
     $lines = New-Object Collections.Generic.List[string]
@@ -1234,6 +1243,84 @@ function Show-DiagnosticsWindow {
 
 $DiagnosticsButton.Add_Click({ Show-DiagnosticsWindow })
 
+function Repair-SoundLiftApoInclude {
+    try {
+        $apoDirectory = Get-ApoConfigDirectory
+        if (-not $apoDirectory) { throw 'Az Equalizer APO konfigurációs mappája nem található.' }
+        $mainConfig = Join-Path $apoDirectory 'config.txt'
+        if (-not (Test-Path $mainConfig)) { throw 'Az Equalizer APO config.txt fájlja nem található.' }
+
+        $mainText = Read-TextWithRetry $mainConfig
+        if ($mainText -match '(?im)^\s*Include:\s*SoundLift\.txt\s*$') {
+            $StatusText.Text = 'OK - Az Equalizer APO Include sora már helyes'
+            $StatusBorder.Background = '#143126'
+            [System.Windows.MessageBox]::Show('Nincs szükség javításra: a SoundLift Include sora már megfelelő.', 'SoundLift – APO javítás', 'OK', 'Information') | Out-Null
+            return
+        }
+
+        $backupPath = Join-Path $apoDirectory 'config.before-SoundLift-repair.bak'
+        if (-not (Test-Path $backupPath)) { [IO.File]::Copy($mainConfig, $backupPath, $false) }
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*#\s*SoundLift\s*\r?\n\s*Include:[^\r\n]+\r?\n?', '')
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*SoundLift(?:[ .][^\r\n]*)?\.txt\s*\r?\n?', '')
+        $mainText = $mainText.TrimEnd() + "`r`n`r`n# SoundLift`r`nInclude: SoundLift.txt`r`n"
+        Write-TextWithRetry $mainConfig $mainText
+
+        $verified = Read-TextWithRetry $mainConfig
+        if ($verified -notmatch '(?im)^\s*Include:\s*SoundLift\.txt\s*$') { throw 'A javítás ellenőrzése sikertelen volt.' }
+        $StatusText.Text = 'OK - Equalizer APO Include sor automatikusan javítva'
+        $StatusBorder.Background = '#143126'
+        Write-SoundLiftLog -Category startup -EventName 'apo_include_repaired' -Data @{ result='success' }
+        [System.Windows.MessageBox]::Show("A SoundLift Include sora sikeresen helyreállt.`n`nAz eredeti config.txt biztonsági mentése is elkészült.", 'SoundLift – APO javítás', 'OK', 'Information') | Out-Null
+    } catch {
+        Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='apo_include_repair' } -ErrorRecord $_
+        $StatusText.Text = "HIBA - APO javítás sikertelen: $($_.Exception.Message)"
+        $StatusBorder.Background = '#4A1F2D'
+        [System.Windows.MessageBox]::Show("A javítás nem sikerült:`n$($_.Exception.Message)", 'SoundLift – APO javítás', 'OK', 'Error') | Out-Null
+    }
+}
+
+$RepairApoButton.Add_Click({
+    $answer = [System.Windows.MessageBox]::Show('A SoundLift ellenőrzi és szükség esetén kijavítja az Equalizer APO Include sorát. Folytatod?', 'SoundLift – APO automatikus javítás', 'YesNo', 'Question')
+    if ($answer -eq 'Yes') { Repair-SoundLiftApoInclude }
+})
+
+function Show-ProblemReportWindow {
+    $report = Get-DiagnosticsReport
+    $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Hiba jelentése'
+    $dialog.Width = 780; $dialog.Height = 640; $dialog.MinWidth = 650; $dialog.MinHeight = 500
+    $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
+    $root = [Windows.Controls.Grid]::new(); $root.Margin = [Windows.Thickness]::new(22)
+    $auto = [Windows.GridLength]::Auto
+    foreach ($height in @($auto, [Windows.GridLength]::new(1,[Windows.GridUnitType]::Star), $auto, $auto)) { $row=[Windows.Controls.RowDefinition]::new(); $row.Height=$height; $root.RowDefinitions.Add($row) }
+    $heading = [Windows.Controls.TextBlock]::new(); $heading.Text = 'Ezt a jelentést fogja elküldeni a SoundLift'; $heading.FontSize = 21; $heading.FontWeight = 'Bold'; $heading.Foreground = $window.Resources['AccentTextBrush']; $heading.Margin = [Windows.Thickness]::new(0,0,0,12)
+    $box = [Windows.Controls.TextBox]::new(); $box.Text=$report; $box.IsReadOnly=$true; $box.AcceptsReturn=$true; $box.TextWrapping='NoWrap'; $box.VerticalScrollBarVisibility='Auto'; $box.HorizontalScrollBarVisibility='Auto'; $box.FontFamily='Consolas'; $box.FontSize=12; $box.Padding=12; $box.Background='#111113'; $box.Foreground='#F8FAFC'; $box.BorderBrush='#3F3F46'
+    $privacy = [Windows.Controls.TextBlock]::new(); $privacy.Text='A jelentés nem tartalmaz licenckulcsot, webhookot, jelszót vagy teljes gépazonosítót. Csak az Elküldés gomb után továbbítjuk.'; $privacy.TextWrapping='Wrap'; $privacy.Foreground='#94A3B8'; $privacy.Margin=[Windows.Thickness]::new(0,12,0,12)
+    $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
+    $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Mégse'; $cancel.Width=105; $cancel.Margin=[Windows.Thickness]::new(0,0,10,0); $cancel.Style=$window.Resources['UtilityButton']
+    $send=[Windows.Controls.Button]::new(); $send.Content='Jelentés elküldése'; $send.Width=180; $send.Style=$window.Resources['PrimaryButton']
+    $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
+    $send.Add_Click({
+        $send.IsEnabled=$false; $send.Content='Küldés folyamatban…'; [Windows.Forms.Application]::DoEvents()
+        try {
+            Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ diagnostic_report=$report; submitted_by_user='true' }
+            $sent = Send-SoundLiftPendingLogs
+            $StatusText.Text = if ($sent) { 'OK - A hibajelentés elküldve' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
+            $StatusBorder.Background = if ($sent) { '#143126' } else { '#4A3514' }
+            $dialog.Close()
+            $resultText = if ($sent) { 'A jelentést sikeresen elküldtük.' } else { 'A jelentést biztonságosan elmentettük, és a következő indításkor automatikusan újraküldjük.' }
+            [System.Windows.MessageBox]::Show("$resultText`nTámogatási ID: $(Get-SoundLiftSupportId)", 'SoundLift – Hiba jelentése', 'OK', 'Information') | Out-Null
+        } catch {
+            $send.IsEnabled=$true; $send.Content='Újrapróbálás'
+            [System.Windows.MessageBox]::Show("A jelentés elküldése nem sikerült:`n$($_.Exception.Message)", 'SoundLift – Hiba jelentése', 'OK', 'Error') | Out-Null
+        }
+    }.GetNewClosure())
+    $buttons.Children.Add($cancel)|Out-Null; $buttons.Children.Add($send)|Out-Null
+    foreach($pair in @(@($heading,0),@($box,1),@($privacy,2),@($buttons,3))){ [Windows.Controls.Grid]::SetRow($pair[0],$pair[1]); $root.Children.Add($pair[0])|Out-Null }
+    $dialog.Content=$root; $dialog.ShowDialog()|Out-Null
+}
+
+$ReportProblemButton.Add_Click({ Show-ProblemReportWindow })
+
 function Get-SoundLiftRollbackState {
     $rollbackDirectory = Join-Path $script:appDirectory 'rollback'
     $backupPath = Join-Path $rollbackDirectory 'SoundLift.previous.exe'
@@ -1306,7 +1393,30 @@ $LicenseButton.Add_Click({
     }
 })
 
-function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
+function Invoke-SoundLiftDownload([string]$uri, [string]$destination, [Windows.Controls.ProgressBar]$progressBar, [Windows.Controls.TextBlock]$statusText, [double]$startPercent, [double]$percentSpan, [string]$label) {
+    $request = [Net.HttpWebRequest]::Create($uri)
+    $request.UserAgent = "SoundLift/$($script:appVersion)"
+    $request.Accept = 'application/octet-stream'
+    $request.Timeout = 120000; $request.ReadWriteTimeout = 120000
+    $response = $null; $input = $null; $output = $null
+    try {
+        $response = $request.GetResponse(); $total = [long]$response.ContentLength
+        $input = $response.GetResponseStream(); $output = [IO.File]::Create($destination)
+        $buffer = New-Object byte[] 65536; $received = [long]0
+        while (($count = $input.Read($buffer, 0, $buffer.Length)) -gt 0) {
+            $output.Write($buffer, 0, $count); $received += $count
+            $fraction = if ($total -gt 0) { [Math]::Min(1.0, $received / $total) } else { 0.0 }
+            $percent = [Math]::Min(100, [Math]::Round($startPercent + ($fraction * $percentSpan)))
+            $progressBar.IsIndeterminate = $total -le 0; if ($total -gt 0) { $progressBar.Value = $percent }
+            $statusText.Text = if ($total -gt 0) { "$label – $percent%" } else { "$label…" }
+            [Windows.Forms.Application]::DoEvents()
+        }
+    } finally {
+        if ($output) { $output.Dispose() }; if ($input) { $input.Dispose() }; if ($response) { $response.Dispose() }
+    }
+}
+
+function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton, [Windows.Controls.ProgressBar]$progressBar) {
     $temporaryDirectory = $null
     try {
         $installerAsset = @($release.assets | Where-Object { $_.name -in @('SoundLift.Setup.exe', 'SoundLift Setup.exe') }) | Select-Object -First 1
@@ -1316,23 +1426,25 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
             $assetUri = [Uri]([string]$asset.browser_download_url)
             if ($assetUri.Scheme -ne 'https' -or $assetUri.Host -ne 'github.com') { throw 'A frissítés letöltési címe nem engedélyezett.' }
         }
-        $installButton.IsEnabled = $false; $installButton.Content = 'Frissítés folyamatban…'; $statusText.Text = 'Letöltés folyamatban…'
+        $installButton.IsEnabled = $false; $installButton.Content = 'Frissítés folyamatban…'; $statusText.Text = 'Letöltés előkészítése…'
+        $progressBar.Visibility = 'Visible'; $progressBar.IsIndeterminate = $false; $progressBar.Value = 0
         [Windows.Forms.Application]::DoEvents()
         $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ('SoundLiftUpdate-' + [Guid]::NewGuid().ToString('N'))
         [IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
         $installerPath = Join-Path $temporaryDirectory 'SoundLift.Setup.exe'
         $checksumPath = Join-Path $temporaryDirectory 'SHA256SUMS.txt'
-        $downloadHeaders = @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/octet-stream' }
-        Invoke-WebRequest -UseBasicParsing -Uri ([string]$installerAsset.browser_download_url) -Headers $downloadHeaders -OutFile $installerPath -TimeoutSec 120
-        Invoke-WebRequest -UseBasicParsing -Uri ([string]$checksumAsset.browser_download_url) -Headers $downloadHeaders -OutFile $checksumPath -TimeoutSec 30
-        $statusText.Text = 'Telepítő ellenőrzése…'; [Windows.Forms.Application]::DoEvents()
+        Invoke-SoundLiftDownload ([string]$installerAsset.browser_download_url) $installerPath $progressBar $statusText 0 92 'Telepítő letöltése'
+        Invoke-SoundLiftDownload ([string]$checksumAsset.browser_download_url) $checksumPath $progressBar $statusText 92 8 'Ellenőrzőösszeg letöltése'
+        $progressBar.Value = 100; $progressBar.IsIndeterminate = $true; $statusText.Text = 'Telepítő biztonsági ellenőrzése…'; [Windows.Forms.Application]::DoEvents()
         $checksumLine = Get-Content -LiteralPath $checksumPath | Where-Object { $_ -match '(?i)^[a-f0-9]{64}\s+\*?SoundLift[ .]Setup\.exe$' } | Select-Object -First 1
         if (-not $checksumLine) { throw 'A telepítő ellenőrzőösszege nem található.' }
         $expectedHash = ([regex]::Match($checksumLine, '(?i)^[a-f0-9]{64}')).Value.ToLowerInvariant()
         $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actualHash -ne $expectedHash) { throw 'A letöltött telepítő ellenőrzése sikertelen.' }
         Save-SoundLiftRollbackCopy
-        $statusText.Text = 'Frissítés telepítése…'; [Windows.Forms.Application]::DoEvents()
+        $statusText.Text = 'Telepítés folyamatban… A SoundLift hamarosan bezárul.'; [Windows.Forms.Application]::DoEvents()
+        $pendingState = @{ from_version=$script:appVersion; target_version=[string]$latestVersion; started_utc=[DateTime]::UtcNow.ToString('o') }
+        [IO.File]::WriteAllText($updateStatePath, ($pendingState | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
         Write-SoundLiftLog -Category update -EventName 'download_page_opened' -Data @{ old_version=$script:appVersion; new_version=$latestVersion; result='automatic_installer_started' }
         Send-SoundLiftPendingLogs
         Start-Process -FilePath $installerPath -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART','/CLOSEAPPLICATIONS' -ErrorAction Stop
@@ -1341,29 +1453,32 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
         Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity error -ErrorRecord $_ -Data @{ new_version=$latestVersion; stage='automatic_install' }
         $statusText.Text = "A frissítés sikertelen: $($_.Exception.Message)"
         $installButton.Content = 'Újrapróbálás'; $installButton.IsEnabled = $true
+        $progressBar.IsIndeterminate = $false; $progressBar.Value = 0
+        if (Test-Path $updateStatePath) { Remove-Item -LiteralPath $updateStatePath -Force -ErrorAction SilentlyContinue }
         if ($temporaryDirectory -and (Test-Path $temporaryDirectory)) { try { Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force } catch { } }
         return $false
     }
 }
 
 function Show-AppUpdateDialog([object]$release, [version]$latestVersion) {
-    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Frissítés'; $dialog.Width=520; $dialog.Height=285
+    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Frissítés'; $dialog.Width=550; $dialog.Height=345
     $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
     $panel=[Windows.Controls.StackPanel]::new(); $panel.Margin=[Windows.Thickness]::new(28)
     $title=[Windows.Controls.TextBlock]::new(); $title.Text='Új SoundLift-frissítés érhető el'; $title.FontSize=23; $title.FontWeight='Bold'; $title.Foreground='#FF4057'
     $details=[Windows.Controls.TextBlock]::new(); $details.Text="Telepített verzió: $script:appVersion`nÚj verzió: $latestVersion"; $details.FontSize=14; $details.Margin=[Windows.Thickness]::new(0,16,0,14)
     $status=[Windows.Controls.TextBlock]::new(); $status.Text='A frissítés automatikusan letöltődik és települ.'; $status.TextWrapping='Wrap'; $status.Foreground='#CBD5E1'; $status.Margin=[Windows.Thickness]::new(0,0,0,18)
+    $progress=[Windows.Controls.ProgressBar]::new(); $progress.Height=9; $progress.Minimum=0; $progress.Maximum=100; $progress.Value=0; $progress.Visibility='Collapsed'; $progress.Margin=[Windows.Thickness]::new(0,0,0,20); $progress.Foreground=$window.Resources['AccentTextBrush']; $progress.Background='#242429'
     $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
     $later=[Windows.Controls.Button]::new(); $later.Content='Később'; $later.Width=100; $later.Margin=[Windows.Thickness]::new(0,0,10,0)
     $install=[Windows.Controls.Button]::new(); $install.Content='Frissítés telepítése'; $install.Width=175
     $later.Add_Click({ $dialog.Close() }.GetNewClosure())
     $install.Add_Click({
-        if (Install-SoundLiftUpdate $release $latestVersion $status $install) {
+        if (Install-SoundLiftUpdate $release $latestVersion $status $install $progress) {
             $dialog.Close(); $script:reallyExit=$true; $window.Close()
         }
     }.GetNewClosure())
     $buttons.Children.Add($later)|Out-Null; $buttons.Children.Add($install)|Out-Null
-    foreach($control in @($title,$details,$status,$buttons)){ $panel.Children.Add($control)|Out-Null }
+    foreach($control in @($title,$details,$status,$progress,$buttons)){ $panel.Children.Add($control)|Out-Null }
     $dialog.Content=$panel; $dialog.ShowDialog()|Out-Null
 }
 
@@ -1387,6 +1502,30 @@ function Check-AppUpdate {
     }
 }
 $UpdateButton.Add_Click({ Check-AppUpdate })
+
+function Show-PostUpdateResult {
+    if (-not (Test-Path $updateStatePath)) { return }
+    try {
+        $state = Get-Content -LiteralPath $updateStatePath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        $targetVersion = [version]([string]$state.target_version)
+        $currentVersion = [version]$script:appVersion
+        if ($currentVersion -lt $targetVersion) { return }
+        Remove-Item -LiteralPath $updateStatePath -Force -ErrorAction SilentlyContinue
+        Write-SoundLiftLog -Category update -EventName 'automatic_update_verified' -Data @{ old_version=$state.from_version; new_version=$script:appVersion; result='success' }
+
+        $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Frissítés kész'; $dialog.Width=500; $dialog.Height=245
+        $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+        $panel=[Windows.Controls.StackPanel]::new(); $panel.Margin=[Windows.Thickness]::new(28)
+        $title=[Windows.Controls.TextBlock]::new(); $title.Text='✓  A frissítés sikeresen települt'; $title.FontSize=22; $title.FontWeight='Bold'; $title.Foreground='#4ADE80'
+        $details=[Windows.Controls.TextBlock]::new(); $details.Text="A SoundLift most már a V$script:appVersion verziót használja.`nMinden beállításod megmaradt."; $details.FontSize=14; $details.LineHeight=22; $details.Margin=[Windows.Thickness]::new(0,18,0,22); $details.Foreground='#CBD5E1'
+        $close=[Windows.Controls.Button]::new(); $close.Content='Rendben'; $close.Width=120; $close.HorizontalAlignment='Right'; $close.Style=$window.Resources['PrimaryButton']; $close.Add_Click({$dialog.Close()}.GetNewClosure())
+        $panel.Children.Add($title)|Out-Null; $panel.Children.Add($details)|Out-Null; $panel.Children.Add($close)|Out-Null
+        $dialog.Content=$panel; $dialog.ShowDialog()|Out-Null
+    } catch {
+        Remove-Item -LiteralPath $updateStatePath -Force -ErrorAction SilentlyContinue
+        Write-SoundLiftLog -Category update -EventName 'automatic_update_verification_failed' -Severity warning -ErrorRecord $_
+    }
+}
 
 function Show-AboutWindow {
     $dialog = [Windows.Window]::new()
@@ -1424,6 +1563,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
+• Élő letöltési százalék és külön telepítési állapot a frissítőablakban.
+• Újraindítás után ellenőrzi és visszajelzi a sikeresen telepített verziót.
+• Egygombos, biztonsági mentést készítő Equalizer APO Include-javítás.
+• Átlátható hibajelentés-előnézet: elküldés előtt pontosan látható minden továbbított adat.
+
 V1.3.2 – AUTOMATIKUS FRISSÍTÉS JAVÍTÁSA
 • A frissítő kezeli a GitHub által ponttal tárolt telepítőnevet.
 • A telepítő és az ellenőrzőösszeg fájlneve mostantól egységes.
@@ -1747,7 +1892,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.2'
+$script:trayIcon.Text = 'SoundLift V1.3.3'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -1797,6 +1942,7 @@ $window.Add_ContentRendered({
             $script:reallyExit = $true; $window.Close(); return
         }
         Update-DeveloperControls
+        Show-PostUpdateResult
         if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
         Check-AppUpdate -Silent
         Complete-SoundLiftStartup

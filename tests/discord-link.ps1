@@ -27,7 +27,10 @@ foreach ($requiredUniversalBuildFragment in @(
 )) {
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
-if (-not $source.Contains("`$script:appVersion = '1.3.2'")) { throw 'Application version was not updated to 1.3.2' }
+if (-not $source.Contains("`$script:appVersion = '1.3.3'")) { throw 'Application version was not updated to 1.3.3' }
+foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult')) {
+    if (-not $source.Contains("function $requiredFeature")) { throw "Missing V1.3.3 feature: $requiredFeature" }
+}
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest',
  "`$_.name -in @('SoundLift.Setup.exe', 'SoundLift Setup.exe')",
@@ -62,7 +65,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.2'
+ $script:appVersion='1.3.3'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }
