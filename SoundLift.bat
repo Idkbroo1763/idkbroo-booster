@@ -5,5 +5,5 @@ if errorlevel 1 (
     exit /b
 )
 cd /d "%~dp0"
-start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0TudomHogyMelegVagy.ps1"
+start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0SoundLift.ps1"
 exit /b

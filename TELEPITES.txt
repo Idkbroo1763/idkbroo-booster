@@ -31,6 +31,6 @@ Nyisd meg ezt a fájlt rendszergazdaként:
 C:\Program Files\EqualizerAPO\config\config.txt
 
 Töröld belőle ezt a sort:
-Include: TudomHogyMelegVagy.txt
+Include: SoundLift.txt
 
 Ezután az alkalmazás már nem módosítja a hangot.

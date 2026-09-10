@@ -15,7 +15,7 @@ $script:appDirectory = if ($script:isPackagedExe) {
 $script:appLaunchPath = if ($script:isPackagedExe) {
     [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
 } else {
-    Join-Path $script:appDirectory 'TudomHogyMelegVagy.bat'
+    Join-Path $script:appDirectory 'SoundLift.bat'
 }
 $script:appVersion = '1.3.0'
 $script:onboardingCompleted = $false
@@ -960,9 +960,9 @@ $ApplyButton.Add_Click({
         $mainBassGain = $bassDb * 0.55
         $punchGain = $bassDb * 0.15
 
-        $ownConfig = Join-Path $apoDirectory 'TudomHogyMelegVagy.txt'
+        $ownConfig = Join-Path $apoDirectory 'SoundLift.txt'
         $mainConfig = Join-Path $apoDirectory 'config.txt'
-        $backupConfig = Join-Path $apoDirectory 'config.before-TudomHogyMelegVagy.bak'
+        $backupConfig = Join-Path $apoDirectory 'config.before-SoundLift.bak'
         if ((Test-Path $mainConfig) -and (-not (Test-Path $backupConfig))) { [IO.File]::Copy($mainConfig, $backupConfig, $false) }
         if (Test-Path $ownConfig) { [IO.File]::Copy($ownConfig, "$ownConfig.undo", $true) }
         $content = @(
@@ -985,12 +985,12 @@ $ApplyButton.Add_Click({
         }
         Write-LinesWithRetry $ownConfig $content
 
-        $includeLine = 'Include: TudomHogyMelegVagy.txt'
+        $includeLine = 'Include: SoundLift.txt'
         $mainText = if (Test-Path $mainConfig) { Read-TextWithRetry $mainConfig } else { '' }
-        # Remove every legacy marker and duplicate include, then add one clean
-        # SoundLift block. This also repairs config files made by older builds.
-        $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*(?:BassForge|TudomHogyMelegVagy)\.txt\s*\r?\n?', '')
-        $mainText = [Regex]::Replace($mainText, '(?im)^\s*#\s*(?:BassForge|Tudom,\s*hogy\s*meleg\s*vagy|SoundLift)\s*\r?\n?', '')
+        # Remove the previous managed SoundLift block regardless of the file
+        # name used by an older build, then add one clean current block.
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*#\s*SoundLift\s*\r?\n\s*Include:[^\r\n]+\r?\n?', '')
+        $mainText = [Regex]::Replace($mainText, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
         $mainText = $mainText.TrimEnd() + "`r`n`r`n# SoundLift`r`n$includeLine`r`n"
         Write-TextWithRetry $mainConfig $mainText
         $StatusText.Text = "OK - Beállítás alkalmazva: $([int]$volumePercent)% / $([int]$bassDb) dB"
@@ -1032,7 +1032,7 @@ function Set-AppState($state) {
     if ($null -ne $state.onboardingCompleted) { $script:onboardingCompleted = [bool]$state.onboardingCompleted }
 }
 
-$appDataDirectory = Join-Path $env:APPDATA 'TudomHogyMelegVagy'
+$appDataDirectory = Join-Path $env:APPDATA 'SoundLift'
 if (-not (Test-Path $appDataDirectory)) { [void][IO.Directory]::CreateDirectory($appDataDirectory) }
 $settingsPath = Join-Path $appDataDirectory 'settings.json'
 $customProfilePath = Join-Path $appDataDirectory 'custom-profile.json'
@@ -1064,13 +1064,13 @@ function Get-DiagnosticsReport {
     if ($apo) {
         $lines.Add("[OK] Equalizer APO konfigurációs mappa: $apo")
         $mainConfig = Join-Path $apo 'config.txt'
-        $boosterConfig = Join-Path $apo 'TudomHogyMelegVagy.txt'
+        $boosterConfig = Join-Path $apo 'SoundLift.txt'
 
         if (Test-Path $mainConfig) {
             $lines.Add('[OK] Az Equalizer APO config.txt fájlja megtalálható.')
             try {
                 $mainText = [IO.File]::ReadAllText($mainConfig)
-                if ($mainText -match '(?im)^\s*Include:\s*TudomHogyMelegVagy\.txt\s*$') {
+                if ($mainText -match '(?im)^\s*Include:\s*SoundLift\.txt\s*$') {
                     $lines.Add('[OK] A booster Include sora aktív a config.txt fájlban.')
                 } else {
                     $lines.Add('[HIBA] Hiányzik a booster Include sora a config.txt fájlból.')
@@ -1331,7 +1331,7 @@ function Check-AppUpdate {
     param([switch]$Silent)
     Write-SoundLiftLog -Category update -EventName 'update_check_started'
     try {
-        $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest' -Headers @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/vnd.github+json' } -TimeoutSec 12
+        $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest' -Headers @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/vnd.github+json' } -TimeoutSec 12
         $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
         $currentVersion = [version]$script:appVersion
         if ($latestVersion -gt $currentVersion) {
@@ -1531,7 +1531,7 @@ $ImportButton.Add_Click({
 $UndoButton.Add_Click({
     $apo = Get-ApoConfigDirectory
     if ($apo) {
-        $own = Join-Path $apo 'TudomHogyMelegVagy.txt'; $undo = "$own.undo"
+        $own = Join-Path $apo 'SoundLift.txt'; $undo = "$own.undo"
         if (Test-Path $undo) { [IO.File]::Copy($undo, $own, $true); $StatusText.Text = 'OK - Előző alkalmazott hang visszaállítva' }
     }
 })
@@ -1541,8 +1541,8 @@ $BypassButton.Add_Click({
         $main = Join-Path $apo 'config.txt'
         if (Test-Path $main) {
             $text = [IO.File]::ReadAllText($main)
-            $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*(?:BassForge|TudomHogyMelegVagy)\.txt\s*\r?\n?', '')
-            $text = [Regex]::Replace($text, '(?im)^\s*#\s*(?:BassForge|Tudom,\s*hogy\s*meleg\s*vagy|SoundLift)\s*\r?\n?', '')
+            $text = [Regex]::Replace($text, '(?im)^\s*#\s*SoundLift\s*\r?\n\s*Include:[^\r\n]+\r?\n?', '')
+            $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
             $text = $text.TrimEnd() + "`r`n"
             Write-TextWithRetry $main $text
             $StatusText.Text = 'KIKAPCSOLVA - Nyomj Alkalmazást a visszakapcsoláshoz'; $StatusBorder.Background = '#4A1F2D'

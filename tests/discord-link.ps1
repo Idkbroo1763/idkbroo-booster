@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-$source = Get-Content "$PSScriptRoot/../TudomHogyMelegVagy.ps1" -Raw
+$source = Get-Content "$PSScriptRoot/../SoundLift.ps1" -Raw
 $tokens=$null; $errors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
@@ -29,7 +29,7 @@ foreach ($requiredUniversalBuildFragment in @(
 }
 if (-not $source.Contains("`$script:appVersion = '1.3.0'")) { throw 'Application version was not updated to 1.3.0' }
 foreach ($requiredUpdaterFragment in @(
- 'https://api.github.com/repos/Idkbroo1763/idkbroo-booster/releases/latest',
+ 'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest',
  "Get-FileHash -LiteralPath `$installerPath -Algorithm SHA256",
  "`$assetUri.Scheme -ne 'https' -or `$assetUri.Host -ne 'github.com'",
  "Start-Process -FilePath `$installerPath",
