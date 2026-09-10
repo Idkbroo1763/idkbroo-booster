@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.1'
+$script:appVersion = '1.3.2'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -124,7 +124,7 @@ function Send-SoundLiftPendingLogs {
         $events = New-Object Collections.Generic.List[object]
         for ($i = 0; $i -lt $take; $i++) { try { $events.Add(($allLines[$i] | ConvertFrom-Json -ErrorAction Stop)) } catch { } }
         if ($events.Count -eq 0) { [IO.File]::Delete($script:logQueueFile); return }
-        $headers = @{ 'Content-Type'='application/json'; 'User-Agent'="SoundLift/$($script:appVersion)" }
+        $headers = @{ 'User-Agent'="SoundLift/$($script:appVersion)" }
         if (-not [string]::IsNullOrWhiteSpace($script:logAnonKey)) { $headers.apikey=$script:logAnonKey; $headers.Authorization="Bearer $($script:logAnonKey)" }
         # Windows PowerShell 5.1 a Generic.List egyetlen elemes tartalmat
         # bizonyos esetekben objektumkent (nem JSON tombkent) szerializal.
@@ -133,7 +133,10 @@ function Send-SoundLiftPendingLogs {
         $eventJson = @($events | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
         $headers['x-soundlift-installation-proof'] = Get-InstallationProof
         $body = '{"events":[' + ($eventJson -join ',') + ']}'
-        $response = Invoke-RestMethod -Uri $script:logApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 8
+        # Windows PowerShell 5.1 otherwise sends string bodies using its legacy
+        # default encoding, which corrupts Hungarian accents in Discord logs.
+        $bodyBytes = [Text.UTF8Encoding]::new($false).GetBytes($body)
+        $response = Invoke-RestMethod -Uri $script:logApiUrl -Method Post -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes -TimeoutSec 8
         if ($response.accepted -ge 0) {
             $remaining = if ($allLines.Count -gt $take) { @($allLines[$take..($allLines.Count - 1)]) } else { @() }
             [IO.File]::WriteAllLines($script:logQueueFile, $remaining, [Text.UTF8Encoding]::new($false))
@@ -493,7 +496,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.1" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.2" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -585,7 +588,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.1" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="S Y S T E M   A U D I O   C O N T R O L  •  V1.3.2" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -617,6 +620,43 @@ $xaml = @'
             <TextBlock Text="T É M A" FontSize="10" FontWeight="Bold" Foreground="#9A7C80" Margin="4,0,0,5"/>
             <ComboBox Name="ThemeCombo" Height="34" Margin="0,0,0,9" Padding="8,3"
                       Background="#17171B" Foreground="#F8FAFC" BorderBrush="#3F3F46" FontWeight="SemiBold">
+              <ComboBox.Template>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                  <Grid>
+                    <ToggleButton Focusable="False" ClickMode="Press"
+                                  IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                      <ToggleButton.Template>
+                        <ControlTemplate TargetType="{x:Type ToggleButton}">
+                          <Border x:Name="ThemeBorder" Background="#17171B" BorderBrush="#3F3F46"
+                                  BorderThickness="1" CornerRadius="5">
+                            <Grid>
+                              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
+                              <Path Grid.Column="1" Width="8" Height="5" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Fill="#CBD5E1" Data="M 0 0 L 4 4 L 8 0 Z"/>
+                            </Grid>
+                          </Border>
+                          <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ThemeBorder" Property="BorderBrush" Value="{DynamicResource AccentTextBrush}"/></Trigger>
+                          </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                      </ToggleButton.Template>
+                    </ToggleButton>
+                    <ContentPresenter Margin="11,0,34,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                      IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}"
+                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                      ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
+                    <Popup Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                           AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                      <Border Margin="0,3,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="180"
+                              Background="#111113" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="5">
+                        <ScrollViewer Margin="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                          <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                        </ScrollViewer>
+                      </Border>
+                    </Popup>
+                  </Grid>
+                </ControlTemplate>
+              </ComboBox.Template>
               <ComboBox.Resources>
                 <Style TargetType="{x:Type ComboBoxItem}">
                   <Setter Property="Foreground" Value="#F8FAFC"/>
@@ -1269,7 +1309,7 @@ $LicenseButton.Add_Click({
 function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Windows.Controls.TextBlock]$statusText, [Windows.Controls.Button]$installButton) {
     $temporaryDirectory = $null
     try {
-        $installerAsset = @($release.assets | Where-Object { $_.name -eq 'SoundLift Setup.exe' }) | Select-Object -First 1
+        $installerAsset = @($release.assets | Where-Object { $_.name -in @('SoundLift.Setup.exe', 'SoundLift Setup.exe') }) | Select-Object -First 1
         $checksumAsset = @($release.assets | Where-Object { $_.name -eq 'SHA256SUMS.txt' }) | Select-Object -First 1
         if (-not $installerAsset -or -not $checksumAsset) { throw 'A kiadásból hiányzik a telepítő vagy az ellenőrzőösszeg.' }
         foreach ($asset in @($installerAsset, $checksumAsset)) {
@@ -1280,13 +1320,13 @@ function Install-SoundLiftUpdate([object]$release, [version]$latestVersion, [Win
         [Windows.Forms.Application]::DoEvents()
         $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ('SoundLiftUpdate-' + [Guid]::NewGuid().ToString('N'))
         [IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
-        $installerPath = Join-Path $temporaryDirectory 'SoundLift Setup.exe'
+        $installerPath = Join-Path $temporaryDirectory 'SoundLift.Setup.exe'
         $checksumPath = Join-Path $temporaryDirectory 'SHA256SUMS.txt'
         $downloadHeaders = @{ 'User-Agent'="SoundLift/$($script:appVersion)"; 'Accept'='application/octet-stream' }
         Invoke-WebRequest -UseBasicParsing -Uri ([string]$installerAsset.browser_download_url) -Headers $downloadHeaders -OutFile $installerPath -TimeoutSec 120
         Invoke-WebRequest -UseBasicParsing -Uri ([string]$checksumAsset.browser_download_url) -Headers $downloadHeaders -OutFile $checksumPath -TimeoutSec 30
         $statusText.Text = 'Telepítő ellenőrzése…'; [Windows.Forms.Application]::DoEvents()
-        $checksumLine = Get-Content -LiteralPath $checksumPath | Where-Object { $_ -match '(?i)^[a-f0-9]{64}\s+\*?SoundLift Setup\.exe$' } | Select-Object -First 1
+        $checksumLine = Get-Content -LiteralPath $checksumPath | Where-Object { $_ -match '(?i)^[a-f0-9]{64}\s+\*?SoundLift[ .]Setup\.exe$' } | Select-Object -First 1
         if (-not $checksumLine) { throw 'A telepítő ellenőrzőösszege nem található.' }
         $expectedHash = ([regex]::Match($checksumLine, '(?i)^[a-f0-9]{64}')).Value.ToLowerInvariant()
         $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -1384,6 +1424,12 @@ $AboutButton.Add_Click({ Show-AboutWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.2 – AUTOMATIKUS FRISSÍTÉS JAVÍTÁSA
+• A frissítő kezeli a GitHub által ponttal tárolt telepítőnevet.
+• A telepítő és az ellenőrzőösszeg fájlneve mostantól egységes.
+• A későbbi automatikus frissítések kompatibilisek maradnak a korábbi elnevezéssel is.
+• A témaválasztó szövege minden állapotban jól olvasható, sötét felületen jelenik meg.
+
 V1.3.1 – SÖTÉT FELÜLET ÉS SOUNDLIFT NÉVEGYSÉGESÍTÉS
 • Fekete Windows-címsor és sötét alkalmazáskeret.
 • A jobb oldali görgetősáv elrejtve; az egérgörgős navigáció továbbra is működik.
@@ -1701,7 +1747,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.1'
+$script:trayIcon.Text = 'SoundLift V1.3.2'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

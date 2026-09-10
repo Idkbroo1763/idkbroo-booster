@@ -1,5 +1,5 @@
 name: Build Windows application
-run-name: SoundLift V1.3.1 letöltése
+run-name: SoundLift V1.3.2 letöltése
 
 on:
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
       - name: Create SHA-256 checksums
         shell: powershell
         run: |
-          $files = @('dist\SoundLift.exe', 'dist\SoundLift Setup.exe', 'dist\SoundLift.ico')
+          $files = @('dist\SoundLift.exe', 'dist\SoundLift.Setup.exe', 'dist\SoundLift.ico')
           $lines = foreach ($file in $files) {
             $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $([IO.Path]::GetFileName($file))"
@@ -58,10 +58,10 @@ jobs:
       - name: Upload Windows files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.3.1 letöltése
+          name: SoundLift V1.3.2 letöltése
           path: |
             dist/SoundLift.exe
-            dist/SoundLift Setup.exe
+            dist/SoundLift.Setup.exe
             dist/SoundLift.ico
             dist/SHA256SUMS.txt
             TELEPÍTÉS.txt
@@ -76,7 +76,7 @@ jobs:
           $tag = "v$((Get-Content -LiteralPath '.\VERSION.txt' -Raw).Trim())"
           $arguments = @(
             $tag,
-            '.\dist\SoundLift Setup.exe',
+            '.\dist\SoundLift.Setup.exe',
             '.\dist\SHA256SUMS.txt',
             '--repo', '${{ github.repository }}',
             '--title', "SoundLift $tag",
@@ -90,7 +90,7 @@ jobs:
           $releaseExists = $LASTEXITCODE -eq 0
           $ErrorActionPreference = $oldErrorActionPreference
           if ($releaseExists) {
-            gh release upload $tag '.\dist\SoundLift Setup.exe' '.\dist\SHA256SUMS.txt' --repo '${{ github.repository }}' --clobber
+            gh release upload $tag '.\dist\SoundLift.Setup.exe' '.\dist\SHA256SUMS.txt' --repo '${{ github.repository }}' --clobber
           } else {
             gh release create @arguments
           }

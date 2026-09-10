@@ -1,4 +1,4 @@
-# SoundLift V1.3.1
+# SoundLift V1.3.2
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -62,7 +62,7 @@ Discord-üzeneteket, szerverlistát vagy kattintási előzményt.
 
 ## Indítás
 
-Olvasd el a `TELEPÍTÉS.txt` fájlt, majd indítsd el a `SoundLift Setup.exe` telepítőt.
+Olvasd el a `TELEPÍTÉS.txt` fájlt, majd indítsd el a `SoundLift.Setup.exe` telepítőt.
 
 ## Megjegyzés
 
