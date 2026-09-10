@@ -1,7 +1,9 @@
-# SoundLift V1.3.3
+# SoundLift V1.3.4
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
+
+A FiveM-profilok egyértelműen FiveM RP és FiveM PvP néven jelennek meg.
 
 Az egyedi SoundLift ikon az ablakban, a tálcán és a Windowszal
 induló parancsikonon is megjelenik.
@@ -26,7 +28,7 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - az eredeti Equalizer APO-konfiguráció egyszeri biztonsági mentése
 - automatikus rendszergazdai indítás egyetlen Windows-engedélykéréssel
 - leválasztott, rejtett PowerShell-folyamat: a parancssor bezárása nem állítja le az appot
-- R6, FiveM RP és FiveM harc profil
+- R6, FiveM RP és FiveM PvP profil
 - kiegyensúlyozott játékprofilok: testes hangzás, enyhén kiemelt lépések és részletek
 - sajat profil mentese es betoltese
 - JSON profil importalas es exportalas

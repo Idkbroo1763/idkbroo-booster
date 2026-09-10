@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.3'
+$script:appVersion = '1.3.4'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.3" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.4" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="#F8FAFC"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -594,7 +594,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.3" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.4" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -613,8 +613,8 @@ $xaml = @'
           <TextBlock Text="HANGPROFILOK" FontSize="11" FontWeight="Bold" Foreground="#9A7C80" Margin="5,2,0,13"/>
           <StackPanel Grid.Row="1">
             <Button Name="MusicButton" Content="♫   Zene"/>
-            <Button Name="GameButton" Content="◆   FiveM – szerepjáték"/>
-            <Button Name="CombatButton" Content="⌁   FiveM – harc"/>
+            <Button Name="GameButton" Content="◆   FiveM RP"/>
+            <Button Name="CombatButton" Content="⌁   FiveM PvP"/>
             <Button Name="R6Button" Content="◎   Rainbow Six Siege"/>
             <Button Name="DiscordButton" Content="◉   Discord"/>
             <Button Name="MovieButton" Content="▶   Film"/>
@@ -675,7 +675,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.3" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.4" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -915,7 +915,7 @@ function Update-Labels {
 function Set-Profile([int]$volume, [int]$bass, [int]$frequency, [bool]$safe = $true) {
     $VolumeSlider.Value = $volume; $BassSlider.Value = $bass; $FrequencySlider.Value = $frequency
     $displayName = switch ($script:activeProfile) {
-        'Music' { 'Zene' } 'FiveM RP' { 'FiveM – szerepjáték' } 'FiveM Combat' { 'FiveM – harc' }
+        'Music' { 'Zene' } 'FiveM RP' { 'FiveM RP' } 'FiveM Combat' { 'FiveM PvP' }
         'R6' { 'Rainbow Six Siege' } 'Movie' { 'Film' } 'Heavy' { 'Erőteljes basszus' }
         'Custom' { 'Egyéni' } default { [string]$script:activeProfile }
     }
@@ -1617,6 +1617,10 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.4 – PROFILNEVEK ÉS VERZIÓZÁS JAVÍTÁSA
+• A két FiveM-profil neve mostantól egyértelműen FiveM RP és FiveM PvP.
+• Új verziószám biztosítja, hogy minden V1.3.3-telepítés érzékelje a frissítést.
+
 V1.3.3 – MEGBÍZHATÓSÁG ÉS HIBAJELENTÉS
 • Egységesebb, közérthetőbb magyar felület és korszerűbb kezelőszövegek.
 • Élő letöltési százalék és külön telepítési állapot a frissítőablakban.
@@ -1872,7 +1876,7 @@ $autoTimer.Add_Tick({
         elseif ($wanted -eq 'Music') { $MusicButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent))) }
         elseif ($wanted -eq 'Discord') { $DiscordButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent))) }
         Invoke-ApplyButton
-        $automaticName = if ($wanted -eq 'Music') { 'Zene' } elseif ($wanted -eq 'FiveM') { 'FiveM – szerepjáték' } else { $wanted }
+        $automaticName = if ($wanted -eq 'Music') { 'Zene' } elseif ($wanted -eq 'FiveM') { 'FiveM RP' } else { $wanted }
         $StatusText.Text = "Automatikus profilváltás • $automaticName profil aktív"
         if ($script:trayIcon) { $script:trayIcon.ShowBalloonTip(1800, 'Profilváltás', "$wanted profil bekapcsolva", [Windows.Forms.ToolTipIcon]::Info) }
     }
@@ -1950,7 +1954,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.3'
+$script:trayIcon.Text = 'SoundLift V1.3.4'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
