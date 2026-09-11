@@ -35,7 +35,7 @@ $source = $source.Replace("`$script:discordLinkRequired = `$false", "`$script:di
 foreach ($missingReplacement in @("`$script:logApiUrl = ''", "`$script:logAnonKey = ''", "`$script:licenseApiUrl = ''", "`$script:licenseAnonKey = ''")) {
     if ($source.Contains($missingReplacement)) { throw "A kiadási konfiguráció beépítése sikertelen: $missingReplacement" }
 }
-if (-not $source.Contains("`$script:discordLinkRequired = `$true")) { throw 'A Discord-ellenőrzés nem került bele a kiadási forrásba.' }
+if (-not $source.Contains("`$script:discordLinkRequired = `$true")) { throw 'Discord verification was not embedded into the release source.' }
 [IO.File]::WriteAllText($temporarySource, $source, [Text.UTF8Encoding]::new($true))
 
 # A minimális, dokumentált paraméterkészletet használjuk. Ez elkerüli, hogy a
