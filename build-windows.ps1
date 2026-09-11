@@ -31,6 +31,11 @@ if (-not [string]::IsNullOrWhiteSpace($env:SOUNDLIFT_LOG_ANON_KEY)) {
     $source = $source.Replace("`$script:logAnonKey = ''", "`$script:logAnonKey = '$(ConvertTo-SingleQuotedLiteral $env:SOUNDLIFT_LOG_ANON_KEY)'")
 }
 $source = $source.Replace("`$script:discordLinkRequired = `$false", "`$script:discordLinkRequired = `$true")
+# RELEASE_CONFIGURATION_EMBEDDING_VERIFIED: fail the build if any public endpoint placeholder remains empty.
+foreach ($missingReplacement in @("`$script:logApiUrl = ''", "`$script:logAnonKey = ''", "`$script:licenseApiUrl = ''", "`$script:licenseAnonKey = ''")) {
+    if ($source.Contains($missingReplacement)) { throw "A kiadási konfiguráció beépítése sikertelen: $missingReplacement" }
+}
+if (-not $source.Contains("`$script:discordLinkRequired = `$true")) { throw 'A Discord-ellenőrzés nem került bele a kiadási forrásba.' }
 [IO.File]::WriteAllText($temporarySource, $source, [Text.UTF8Encoding]::new($true))
 
 # A minimális, dokumentált paraméterkészletet használjuk. Ez elkerüli, hogy a

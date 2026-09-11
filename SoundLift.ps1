@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.6'
+$script:appVersion = '1.3.7'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.6" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.7" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -631,7 +631,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.6" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.7" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -714,7 +714,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.6" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.7" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -1358,6 +1358,15 @@ $RepairApoButton.Add_Click({
     if ($answer -eq 'Yes') { Repair-SoundLiftApoInclude }
 })
 
+function Test-SoundLiftProblemReportService {
+    Initialize-SoundLiftLogger
+    return ($script:loggerInitialized -and -not [string]::IsNullOrWhiteSpace($script:logApiUrl))
+}
+
+function Test-SoundLiftProblemReportQueued {
+    return (-not [string]::IsNullOrWhiteSpace($script:logQueueFile) -and (Test-Path $script:logQueueFile) -and (Get-Item -LiteralPath $script:logQueueFile).Length -gt 0)
+}
+
 function Show-ProblemReportWindow {
     $report = Get-DiagnosticsReport
     $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Hiba jelentése'
@@ -1383,7 +1392,7 @@ function Show-ProblemReportWindow {
     $send=[Windows.Controls.Button]::new(); $send.Content='Jelentés elküldése'; $send.Width=180; $send.Style=$window.Resources['PrimaryButton']
     $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
     $send.Add_Click({
-        if ([string]::IsNullOrWhiteSpace($script:logApiUrl)) {
+        if (-not (Test-SoundLiftProblemReportService)) {
             [System.Windows.MessageBox]::Show('A hibajelentő szolgáltatás nincs beállítva ebben a példányban. Telepítsd a hivatalos SoundLift-verziót, majd próbáld újra.', 'SoundLift – Hiba jelentése', 'OK', 'Warning') | Out-Null
             return
         }
@@ -1391,7 +1400,7 @@ function Show-ProblemReportWindow {
         try {
             $submittedDescription = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
             Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ user_description=$submittedDescription; diagnostic_report=$report; submitted_by_user='true' }
-            if (-not (Test-Path $script:logQueueFile) -or (Get-Item -LiteralPath $script:logQueueFile).Length -eq 0) { throw 'A jelentés helyi előkészítése sikertelen volt.' }
+            if (-not (Test-SoundLiftProblemReportQueued)) { throw 'A jelentés helyi előkészítése sikertelen volt.' }
             $sent = Send-SoundLiftPendingLogs
             $StatusText.Text = if ($sent) { 'A hibajelentést sikeresen elküldtük' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
             $StatusBorder.Background = if ($sent) { '#143126' } else { '#4A3514' }
@@ -1691,6 +1700,10 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.7 – HIBAJELENTÉS JAVÍTÁSA
+• A hibajelentő most már a megfelelő alkalmazáshatókörből ellenőrzi a beépített szolgáltatáscímet.
+• Megszűnt a téves „hibajelentő szolgáltatás nincs beállítva” figyelmeztetés.
+
 V1.3.6 – FELÜLETI ÉS HIBAJELENTÉSI JAVÍTÁSOK
 • A hangprofilok kisebb ablakban is görgethetők.
 • A világos mód feliratai és vezérlői mindenhol olvashatók.
@@ -2043,7 +2056,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.6'
+$script:trayIcon.Text = 'SoundLift V1.3.7'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
