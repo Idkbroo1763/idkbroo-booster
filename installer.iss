@@ -1,5 +1,5 @@
 #define AppName "SoundLift"
-#define AppVersion "1.3.5"
+#define AppVersion "1.3.6"
 #define AppPublisher "idkbroo"
 #define AppExeName "SoundLift.exe"
 

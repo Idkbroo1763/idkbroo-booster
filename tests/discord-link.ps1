@@ -27,12 +27,21 @@ foreach ($requiredUniversalBuildFragment in @(
 )) {
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
-if (-not $source.Contains("`$script:appVersion = '1.3.5'")) { throw 'Application version was not updated to 1.3.5' }
+if (-not $source.Contains("`$script:appVersion = '1.3.6'")) { throw 'Application version was not updated to 1.3.6' }
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
 foreach ($requiredThemeMarker in @('#A855F7','#22D3EE','#FB923C','#F5C451','OLED fekete','#E8EEF8')) {
     if (-not $source.Contains($requiredThemeMarker)) { throw "Missing SoundLift theme marker: $requiredThemeMarker" }
+}
+foreach ($requiredUiFix in @(
+    '<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"',
+    'if ([string]::IsNullOrWhiteSpace($script:logApiUrl))',
+    'Test-Path $script:logQueueFile',
+    '<Style x:Key="VerticalEqSlider" TargetType="Slider">',
+    '$ApplyButton.Foreground = $window.Resources[''AccentContrastBrush'']'
+)) {
+    if (-not $source.Contains($requiredUiFix)) { throw "Missing V1.3.6 UI fix: $requiredUiFix" }
 }
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest',
@@ -68,7 +77,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.5'
+ $script:appVersion='1.3.6'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

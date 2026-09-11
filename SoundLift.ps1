@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.5'
+$script:appVersion = '1.3.6'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.5" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.6" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -548,7 +548,7 @@ $xaml = @'
       </Setter>
     </Style>
     <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{DynamicResource AccentGradient}"/><Setter Property="Foreground" Value="White"/>
+      <Setter Property="Background" Value="{DynamicResource AccentGradient}"/><Setter Property="Foreground" Value="{DynamicResource AccentContrastBrush}"/>
       <Setter Property="FontSize" Value="15"/><Setter Property="Padding" Value="24,14"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
@@ -566,21 +566,25 @@ $xaml = @'
       <Setter Property="Margin" Value="0,4,18,4"/><Setter Property="Cursor" Value="Hand"/>
     </Style>
     <Style TargetType="Slider">
-      <Setter Property="Height" Value="34"/><Setter Property="Margin" Value="0,7,0,5"/>
+      <Setter Property="Height" Value="32"/><Setter Property="Margin" Value="0,7,0,5"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Slider">
             <Grid>
-              <Border Height="8" CornerRadius="4" Background="#2A2A2E" VerticalAlignment="Center"/>
+              <Border Height="6" CornerRadius="3" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" VerticalAlignment="Center"/>
               <Track Name="PART_Track" VerticalAlignment="Center">
                 <Track.DecreaseRepeatButton>
                   <RepeatButton Command="Slider.DecreaseLarge" Background="{DynamicResource AccentGradient}" BorderThickness="0">
-                    <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="{TemplateBinding Background}" CornerRadius="4"/></ControlTemplate></RepeatButton.Template>
+                    <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Height="6" Background="{TemplateBinding Background}" CornerRadius="3"/></ControlTemplate></RepeatButton.Template>
                   </RepeatButton>
                 </Track.DecreaseRepeatButton>
                 <Track.Thumb>
-                  <Thumb Width="22" Height="22" Cursor="Hand">
-                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="{DynamicResource AccentTextBrush}" StrokeThickness="5"/></ControlTemplate></Thumb.Template>
+                  <Thumb Width="20" Height="20" Cursor="Hand">
+                    <Thumb.Template>
+                      <ControlTemplate TargetType="Thumb">
+                        <Grid><Ellipse Fill="{DynamicResource SurfaceBrush}" Stroke="{DynamicResource AccentTextBrush}" StrokeThickness="3"/><Ellipse Width="6" Height="6" Fill="{DynamicResource AccentTextBrush}"/></Grid>
+                      </ControlTemplate>
+                    </Thumb.Template>
                   </Thumb>
                 </Track.Thumb>
                 <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Background="Transparent" BorderThickness="0"/></Track.IncreaseRepeatButton>
@@ -591,8 +595,32 @@ $xaml = @'
       </Setter>
     </Style>
     <Style x:Key="VerticalEqSlider" TargetType="Slider">
-      <Setter Property="Width" Value="40"/><Setter Property="Height" Value="120"/>
+      <Setter Property="Width" Value="32"/><Setter Property="Height" Value="120"/>
       <Setter Property="Margin" Value="2"/><Setter Property="Orientation" Value="Vertical"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Slider">
+            <Grid>
+              <Border Width="6" CornerRadius="3" Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center"/>
+              <Track Name="PART_Track" Orientation="Vertical" IsDirectionReversed="True" HorizontalAlignment="Center">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Command="Slider.DecreaseLarge" Background="Transparent" BorderThickness="0"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb Width="20" Height="14" Cursor="Hand">
+                    <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AccentTextBrush}" BorderThickness="3" CornerRadius="7"/></ControlTemplate></Thumb.Template>
+                  </Thumb>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Command="Slider.IncreaseLarge" Background="{DynamicResource AccentTextBrush}" BorderThickness="0">
+                    <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Width="6" Background="{TemplateBinding Background}" CornerRadius="3"/></ControlTemplate></RepeatButton.Template>
+                  </RepeatButton>
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
   </Window.Resources>
 
@@ -603,7 +631,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.5" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.6" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -620,7 +648,8 @@ $xaml = @'
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <TextBlock Text="HANGPROFILOK" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="5,2,0,13"/>
-          <StackPanel Grid.Row="1">
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly" Margin="0,0,-6,4">
+          <StackPanel Margin="0,0,6,0">
             <Button Name="MusicButton" Content="♫   Zene"/>
             <Button Name="GameButton" Content="◆   FiveM RP"/>
             <Button Name="CombatButton" Content="⌁   FiveM PvP"/>
@@ -630,6 +659,7 @@ $xaml = @'
             <Button Name="HeavyButton" Content="ϟ   Erőteljes basszus"/>
             <Button Name="ResetButton" Content="↺   Alapbeállítások"/>
           </StackPanel>
+          </ScrollViewer>
           <StackPanel Grid.Row="2">
             <Border Height="1" Background="#303035" Margin="0,4,0,13"/>
             <TextBlock Text="MEGJELENÉS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="4,0,0,5"/>
@@ -684,7 +714,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.5" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.6" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -692,7 +722,7 @@ $xaml = @'
             <TextBlock Name="ActiveProfileText" Text="Aktív profil: Egyéni" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="12" Margin="4,0,0,10"/>
             <Button Name="AboutButton" Content="ⓘ  A SoundLiftről és Discord" Style="{StaticResource UtilityButton}"/>
             <Button Name="PrivacyButton" Content="◈  Adatvédelem" Style="{StaticResource UtilityButton}"/>
-            <Button Name="ApplyButton" Content="BEÁLLÍTÁSOK ALKALMAZÁSA" Style="{StaticResource PrimaryButton}"/>
+            <Button Name="ApplyButton" Content="BEÁLLÍTÁSOK ALKALMAZÁSA" Style="{StaticResource PrimaryButton}" FontSize="13" Padding="10,13"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -843,6 +873,7 @@ $CopySupportIdButton.Add_Click({
 $script:eqBands = @(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
 $script:eqSliders = @()
 $script:eqValueLabels = @()
+$script:eqBandLabels = @()
 for ($i = 0; $i -lt $script:eqBands.Count; $i++) {
     $column = New-Object Windows.Controls.StackPanel
     $column.HorizontalAlignment = 'Center'
@@ -857,6 +888,7 @@ for ($i = 0; $i -lt $script:eqBands.Count; $i++) {
     [void]$column.Children.Add($bandLabel); [void]$column.Children.Add($slider); [void]$column.Children.Add($valueLabel)
     [void]$EqPanel.Children.Add($column)
     $script:eqSliders += $slider; $script:eqValueLabels += $valueLabel
+    $script:eqBandLabels += $bandLabel
     $index = $i
     $slider.Add_ValueChanged({ $script:eqValueLabels[$index].Text = ([int]$script:eqSliders[$index].Value).ToString() }.GetNewClosure())
 }
@@ -905,6 +937,15 @@ function Set-AppTheme([string]$themeName) {
     }
     foreach($entry in $palette.GetEnumerator()) { $window.Resources[($entry.Key + 'Brush')] = [Windows.Media.SolidColorBrush]::new([Windows.Media.ColorConverter]::ConvertFromString([string]$entry.Value)) }
     foreach ($label in $script:eqValueLabels) { $label.Foreground = $window.Resources['AccentTextBrush'] }
+    foreach ($label in $script:eqBandLabels) { $label.Foreground = $window.Resources['MutedTextBrush'] }
+    $window.Foreground = $window.Resources['PrimaryTextBrush']
+    foreach ($control in @($MusicButton,$GameButton,$CombatButton,$R6Button,$DiscordButton,$MovieButton,$HeavyButton,$ResetButton,$CopySupportIdButton,$LicenseButton,$AboutButton,$PrivacyButton,$SaveButton,$LoadButton,$ExportButton,$ImportButton,$UndoButton,$TestButton,$DeviceButton,$DiagnosticsButton,$RepairApoButton,$ReportProblemButton,$UpdateButton,$RollbackButton,$ChangelogButton)) {
+        if ($control) { $control.Foreground = $window.Resources['PrimaryTextBrush'] }
+    }
+    foreach ($checkBox in @($SafetyCheck,$AutoProfileCheck,$InstantCheck,$StartupCheck)) { if ($checkBox) { $checkBox.Foreground = $window.Resources['SecondaryTextBrush'] } }
+    $ThemeCombo.Foreground = $window.Resources['PrimaryTextBrush']
+    $VersionText.Foreground = $window.Resources['MutedTextBrush']; $SupportIdText.Foreground = $window.Resources['MutedTextBrush']; $LicenseStatusText.Foreground = $window.Resources['MutedTextBrush']
+    $ApplyButton.Foreground = $window.Resources['AccentContrastBrush']
     $script:themeName = $themeName
 }
 
@@ -1321,30 +1362,36 @@ function Show-ProblemReportWindow {
     $report = Get-DiagnosticsReport
     $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Hiba jelentése'
     $dialog.Width = 800; $dialog.Height = 720; $dialog.MinWidth = 680; $dialog.MinHeight = 580
-    $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
+    $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner = $window
+    $dialog.Background = $window.Resources['SurfaceAltBrush']; $dialog.Foreground = $window.Resources['PrimaryTextBrush']
     $root = [Windows.Controls.Grid]::new(); $root.Margin = [Windows.Thickness]::new(22)
     $auto = [Windows.GridLength]::Auto
     foreach ($height in @($auto,$auto,$auto,$auto,[Windows.GridLength]::new(1,[Windows.GridUnitType]::Star),$auto,$auto)) { $row=[Windows.Controls.RowDefinition]::new(); $row.Height=$height; $root.RowDefinitions.Add($row) }
-    $heading = [Windows.Controls.TextBlock]::new(); $heading.Text = 'Hiba jelentése'; $heading.FontSize = 23; $heading.FontWeight = 'Bold'; $heading.Foreground = $window.Resources['AccentTextBrush']; $heading.Margin = [Windows.Thickness]::new(0,0,0,14)
+    $heading = [Windows.Controls.TextBlock]::new(); $heading.Text = 'Hiba jelentése'; $heading.FontSize = 25; $heading.FontWeight = 'Bold'; $heading.Foreground = $window.Resources['AccentTextBrush']; $heading.Margin = [Windows.Thickness]::new(0,0,0,16)
     $descriptionLabel=[Windows.Controls.TextBlock]::new(); $descriptionLabel.Text='Írd le röviden, mi történt (opcionális)'; $descriptionLabel.FontSize=13; $descriptionLabel.FontWeight='SemiBold'; $descriptionLabel.Margin=[Windows.Thickness]::new(0,0,0,7)
-    $description=[Windows.Controls.TextBox]::new(); $description.Height=72; $description.MaxLength=1000; $description.AcceptsReturn=$true; $description.TextWrapping='Wrap'; $description.VerticalScrollBarVisibility='Auto'; $description.Padding=10; $description.Background='#111113'; $description.Foreground='#F8FAFC'; $description.BorderBrush='#3F3F46'; $description.Margin=[Windows.Thickness]::new(0,0,0,13)
-    $previewLabel=[Windows.Controls.TextBlock]::new(); $previewLabel.Text='Elküldésre kerülő adatok előnézete'; $previewLabel.FontSize=13; $previewLabel.FontWeight='SemiBold'; $previewLabel.Margin=[Windows.Thickness]::new(0,0,0,7)
-    $box = [Windows.Controls.TextBox]::new(); $box.IsReadOnly=$true; $box.AcceptsReturn=$true; $box.TextWrapping='NoWrap'; $box.VerticalScrollBarVisibility='Auto'; $box.HorizontalScrollBarVisibility='Auto'; $box.FontFamily='Consolas'; $box.FontSize=12; $box.Padding=12; $box.Background='#111113'; $box.Foreground='#F8FAFC'; $box.BorderBrush='#3F3F46'
+    $description=[Windows.Controls.TextBox]::new(); $description.Height=78; $description.MaxLength=1000; $description.AcceptsReturn=$true; $description.TextWrapping='Wrap'; $description.VerticalScrollBarVisibility='Auto'; $description.Padding=12; $description.Background=$window.Resources['SurfaceBrush']; $description.Foreground=$window.Resources['PrimaryTextBrush']; $description.BorderBrush=$window.Resources['BorderBrush']; $description.BorderThickness=1; $description.Margin=[Windows.Thickness]::new(0,0,0,15)
+    $previewLabel=[Windows.Controls.TextBlock]::new(); $previewLabel.Text='Küldés előtti adat-előnézet'; $previewLabel.FontSize=13; $previewLabel.FontWeight='SemiBold'; $previewLabel.Margin=[Windows.Thickness]::new(0,0,0,7)
+    $box = [Windows.Controls.TextBox]::new(); $box.IsReadOnly=$true; $box.AcceptsReturn=$true; $box.TextWrapping='NoWrap'; $box.VerticalScrollBarVisibility='Auto'; $box.HorizontalScrollBarVisibility='Auto'; $box.FontFamily='Consolas'; $box.FontSize=12; $box.Padding=14; $box.Background=$window.Resources['SurfaceBrush']; $box.Foreground=$window.Resources['PrimaryTextBrush']; $box.BorderBrush=$window.Resources['BorderBrush']; $box.BorderThickness=1
     $refreshPreview = {
         $userText = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
         $box.Text = "FELHASZNÁLÓ LEÍRÁSA`r`n$userText`r`n`r`n$report"
     }.GetNewClosure()
     $description.Add_TextChanged($refreshPreview); & $refreshPreview
-    $privacy = [Windows.Controls.TextBlock]::new(); $privacy.Text='A jelentés nem tartalmaz licenckulcsot, webhookot, jelszót vagy teljes gépazonosítót. Csak az Elküldés gomb után továbbítjuk.'; $privacy.TextWrapping='Wrap'; $privacy.Foreground='#94A3B8'; $privacy.Margin=[Windows.Thickness]::new(0,12,0,12)
+    $privacy = [Windows.Controls.TextBlock]::new(); $privacy.Text='ADATVÉDELEM  •  A jelentés nem tartalmaz licenckulcsot, webhookot, jelszót vagy teljes gépazonosítót. Az adatok csak a Jelentés elküldése gomb megnyomása után kerülnek továbbításra.'; $privacy.TextWrapping='Wrap'; $privacy.Foreground=$window.Resources['SecondaryTextBrush']; $privacy.Background=$window.Resources['ControlBrush']; $privacy.Padding=[Windows.Thickness]::new(12,10,12,10); $privacy.Margin=[Windows.Thickness]::new(0,12,0,12)
     $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
     $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Mégse'; $cancel.Width=105; $cancel.Margin=[Windows.Thickness]::new(0,0,10,0); $cancel.Style=$window.Resources['UtilityButton']
     $send=[Windows.Controls.Button]::new(); $send.Content='Jelentés elküldése'; $send.Width=180; $send.Style=$window.Resources['PrimaryButton']
     $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
     $send.Add_Click({
+        if ([string]::IsNullOrWhiteSpace($script:logApiUrl)) {
+            [System.Windows.MessageBox]::Show('A hibajelentő szolgáltatás nincs beállítva ebben a példányban. Telepítsd a hivatalos SoundLift-verziót, majd próbáld újra.', 'SoundLift – Hiba jelentése', 'OK', 'Warning') | Out-Null
+            return
+        }
         $send.IsEnabled=$false; $send.Content='Küldés folyamatban…'; [Windows.Forms.Application]::DoEvents()
         try {
             $submittedDescription = if ([string]::IsNullOrWhiteSpace($description.Text)) { '(nincs megadva)' } else { $description.Text.Trim() }
             Write-SoundLiftLog -Category crash -EventName 'manual_diagnostic_report' -Severity warning -Data @{ user_description=$submittedDescription; diagnostic_report=$report; submitted_by_user='true' }
+            if (-not (Test-Path $script:logQueueFile) -or (Get-Item -LiteralPath $script:logQueueFile).Length -eq 0) { throw 'A jelentés helyi előkészítése sikertelen volt.' }
             $sent = Send-SoundLiftPendingLogs
             $StatusText.Text = if ($sent) { 'A hibajelentést sikeresen elküldtük' } else { 'A hibajelentést mentettük, a következő indításkor újraküldjük' }
             $StatusBorder.Background = if ($sent) { '#143126' } else { '#4A3514' }
@@ -1644,6 +1691,13 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.6 – FELÜLETI ÉS HIBAJELENTÉSI JAVÍTÁSOK
+• A hangprofilok kisebb ablakban is görgethetők.
+• A világos mód feliratai és vezérlői mindenhol olvashatók.
+• A Hibajelentés ablak modernebb, és küldés előtt ellenőrzi a jelentés előkészítését.
+• A Beállítások alkalmazása gomb teljes szövege elfér.
+• Megújultak a hangerő-, basszus- és hangszínszabályzó csúszkák.
+
 V1.3.5 – ÚJ MEGJELENÉSEK
 • Hat új téma: Fekete és lila, Éjkék és türkiz, Grafit és narancs, Fekete és arany, OLED fekete és Világos.
 • A világos és OLED megjelenés a teljes felület színeit egységesen módosítja.
@@ -1989,7 +2043,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.5'
+$script:trayIcon.Text = 'SoundLift V1.3.6'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
