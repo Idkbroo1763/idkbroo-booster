@@ -29,10 +29,14 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $buildSource.Contains('RELEASE_CONFIGURATION_EMBEDDING_VERIFIED')) { throw 'Missing release configuration verification' }
-if (-not $source.Contains("`$script:appVersion = '1.3.13'")) { throw 'Application version was not updated to 1.3.13' }
+if (-not $source.Contains("`$script:appVersion = '1.3.14'")) { throw 'Application version was not updated to 1.3.14' }
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow','Disable-SoundLiftEffects')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
+foreach ($requiredStartupFix in @('function Start-AsyncAppUpdateCheck', 'DownloadStringAsync', 'if (Test-DiscordLinkOfflineGrace) { return $true }')) {
+    if (-not $source.Contains($requiredStartupFix)) { throw "Missing responsive startup behavior: $requiredStartupFix" }
+}
+if ($source.Contains('Check-AppUpdate -Silent')) { throw 'Blocking startup update check is still enabled' }
 $installerSource = Get-Content "$PSScriptRoot/../installer.iss" -Raw
 $uninstallerSource = Get-Content "$PSScriptRoot/../Uninstall-SoundLift.ps1" -Raw
 foreach ($requiredCleanupMarker in @('[UninstallRun]', 'Uninstall-SoundLift.ps1')) {
@@ -105,7 +109,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.13'
+ $script:appVersion='1.3.14'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

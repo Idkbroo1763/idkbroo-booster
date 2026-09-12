@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.13'
+$script:appVersion = '1.3.14'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -162,7 +162,6 @@ function Complete-SoundLiftStartup {
         [IO.File]::WriteAllText($script:logStateFile, (@{lastSuccessfulVersion=$script:appVersion; updatedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress), [Text.Encoding]::UTF8)
         $script:startupCompleted = $true
         Write-SoundLiftLog -Category startup -EventName 'initialization_succeeded' -Data @{ packaged=$script:isPackagedExe }
-        Send-SoundLiftPendingLogs
     } catch { }
 }
 
@@ -313,6 +312,9 @@ function Test-DiscordLinkOfflineGrace {
 
 function Confirm-DiscordAccountLink {
     if (-not $script:discordLinkRequired) { return $true }
+    # A DPAPI-val védett, korábban sikeresen ellenőrzött kapcsolat azonnal
+    # használható. Így az internet sebessége nem blokkolja a főablak indulását.
+    if (Test-DiscordLinkOfflineGrace) { return $true }
     try {
         $status = Invoke-DiscordLinkApi 'discord-link-status'
         if ($status.linked -eq $true) { Save-DiscordLinkCache ([string]$status.support_id); return $true }
@@ -445,6 +447,15 @@ function Confirm-SoundLiftLicense {
         $script:currentLicenseType = 'free'
         return (-not $PromptForKey -and $script:licenseMode -eq 'universal')
     }
+    if (-not $PromptForKey -and $saved -and $saved.lastSuccessUtc) {
+        try {
+            $cachedAge = ([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours
+            if ($cachedAge -ge 0 -and $cachedAge -le 720) {
+                $script:currentLicenseType = if ($saved.licenseType) { [string]$saved.licenseType } else { 'customer' }
+                return $true
+            }
+        } catch { }
+    }
     try {
         $response = Invoke-LicenseApi $key
         if ($response.allowed -eq $true) {
@@ -502,7 +513,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.13" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.14" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -662,7 +673,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.13" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.14" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -744,7 +755,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.13" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.14" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -819,34 +830,38 @@ $xaml = @'
           <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="18" Padding="20,17" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <TextBlock Text="PROFILOK ÉS RENDSZERESZKÖZÖK" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="2,0,0,12"/>
+              <TextBlock Text="ESZKÖZÖK ÉS KARBANTARTÁS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="2,0,0,12"/>
               <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
                 <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="13" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                   <StackPanel>
-                    <TextBlock Text="PROFILKEZELÉS" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
-                    <WrapPanel>
-                      <Button Name="SaveButton" Content="＋  Egyéni profil mentése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="LoadButton" Content="↗  Mentett profil betöltése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ExportButton" Content="Profil exportálása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ImportButton" Content="Profil importálása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="UndoButton" Content="↶  Utolsó módosítás visszavonása" Style="{StaticResource UtilityButton}"/>
-                    </WrapPanel>
+                    <TextBlock Text="PROFILOK" Foreground="{DynamicResource SectionTextBrush}" FontSize="10" FontWeight="Bold" Margin="2,0,0,3"/>
+                    <TextBlock Text="Mentés, betöltés és átvitel" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" Margin="2,0,0,10"/>
+                    <Button Name="SaveButton" Content="＋  Egyéni profil mentése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="LoadButton" Content="↗  Mentett profil betöltése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="ExportButton" Content="⇧  Profil exportálása" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="ImportButton" Content="⇩  Profil importálása" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="UndoButton" Content="↶  Előző beállítás visszaállítása" Style="{StaticResource UtilityButton}" Margin="0"/>
                   </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="13" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                   <StackPanel>
-                    <TextBlock Text="RENDSZERESZKÖZÖK" Foreground="#7C8799" FontSize="10" FontWeight="Bold" Margin="2,0,0,9"/>
-                    <WrapPanel>
-                      <Button Name="TestButton" Content="◉  Basszus tesztelése (60 Hz)" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="DeviceButton" Content="▣  APO hangeszközök beállítása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="DiagnosticsButton" Content="✓  Rendszer ellenőrzése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="RepairApoButton" Content="⟳  APO-kapcsolat helyreállítása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ReportProblemButton" Content="⚑  Hibajelentés küldése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="UpdateButton" Content="↻  Frissítés keresése" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="RollbackButton" Content="↶  Korábbi verzió visszaállítása" Style="{StaticResource UtilityButton}"/>
-                      <Button Name="ChangelogButton" Content="≡  Frissítési előzmények" Style="{StaticResource UtilityButton}"/>
-                    </WrapPanel>
+                    <TextBlock Text="HANGRENDSZER" Foreground="{DynamicResource SectionTextBrush}" FontSize="10" FontWeight="Bold" Margin="2,0,0,3"/>
+                    <TextBlock Text="APO beállítás és ellenőrzés" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" Margin="2,0,0,10"/>
+                    <Button Name="TestButton" Content="◉  Basszus tesztelése (60 Hz)" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="DeviceButton" Content="▣  Hangeszközök beállítása" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="DiagnosticsButton" Content="✓  Rendszer ellenőrzése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="RepairApoButton" Content="⟳  APO-kapcsolat javítása" Style="{StaticResource UtilityButton}" Margin="0"/>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="4" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="13" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                  <StackPanel>
+                    <TextBlock Text="TÁMOGATÁS ÉS FRISSÍTÉS" Foreground="{DynamicResource SectionTextBrush}" FontSize="10" FontWeight="Bold" Margin="2,0,0,3"/>
+                    <TextBlock Text="Segítség és alkalmazásverzió" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" Margin="2,0,0,10"/>
+                    <Button Name="ReportProblemButton" Content="⚑  Hibajelentés küldése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="UpdateButton" Content="↻  Frissítés keresése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="ChangelogButton" Content="≡  Frissítési előzmények" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="RollbackButton" Content="↶  Korábbi verzió visszaállítása" Style="{StaticResource UtilityButton}" Margin="0"/>
                   </StackPanel>
                 </Border>
               </Grid>
@@ -1628,6 +1643,36 @@ function Check-AppUpdate {
         if (-not $Silent) { [System.Windows.MessageBox]::Show("A frissítés most nem ellenőrizhető.`n`n$($_.Exception.Message)", 'SoundLift – Frissítés', 'OK', 'Warning') | Out-Null }
     }
 }
+
+function Start-AsyncAppUpdateCheck {
+    try {
+        $script:updateCheckClient = [Net.WebClient]::new()
+        $script:updateCheckClient.Headers['User-Agent'] = "SoundLift/$($script:appVersion)"
+        $script:updateCheckClient.Headers['Accept'] = 'application/vnd.github+json'
+        $script:updateCheckClient.Add_DownloadStringCompleted({
+            param($sender, $eventArgs)
+            try {
+                if ($eventArgs.Cancelled -or $eventArgs.Error) { throw $(if ($eventArgs.Error) { $eventArgs.Error } else { 'A frissítésellenőrzés megszakadt.' }) }
+                $release = $eventArgs.Result | ConvertFrom-Json
+                $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
+                if ($latestVersion -gt [version]$script:appVersion) {
+                    Write-SoundLiftLog -Category update -EventName 'update_available' -Data @{ old_version=$script:appVersion; new_version=$latestVersion }
+                    Show-AppUpdateDialog $release $latestVersion
+                } else {
+                    Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$script:appVersion }
+                }
+            } catch {
+                Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity warning -Data @{ stage='background_check' } -ErrorRecord $_
+            } finally {
+                if ($sender) { $sender.Dispose() }
+                $script:updateCheckClient = $null
+            }
+        })
+        $script:updateCheckClient.DownloadStringAsync([Uri]'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest')
+    } catch {
+        Write-SoundLiftLog -Category update -EventName 'update_check_failed' -Severity warning -Data @{ stage='background_start' } -ErrorRecord $_
+    }
+}
 $UpdateButton.Add_Click({ Check-AppUpdate })
 
 function Show-PostUpdateResult {
@@ -1729,6 +1774,12 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.14 – RENDEZETT ESZKÖZTÁR
+• A profilkezelés, a hangrendszer és a támogatási funkciók külön, áttekinthető csoportba kerültek.
+• A műveleti gombok egységes szélességű, rendezett sorokban jelennek meg.
+• Rövid magyarázat segíti az egyes eszközcsoportok használatát.
+• Az indításkori ellenőrzések nem fagyasztják le a kezelőfelületet.
+
 V1.3.13 – OFFLINE MÓD ÉS BIZTONSÁG
 • Korábban ellenőrzött telepítés internetkimaradáskor legfeljebb 30 napig használható.
 • Új Biztonságos mód kapcsolja ki a SoundLift hatásait és állítja vissza az eredeti hangot.
@@ -2127,7 +2178,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.13'
+$script:trayIcon.Text = 'SoundLift V1.3.14'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
@@ -2179,8 +2230,8 @@ $window.Add_ContentRendered({
         Update-DeveloperControls
         Show-PostUpdateResult
         if (-not $script:onboardingCompleted) { Show-FirstRunWizard }
-        Check-AppUpdate -Silent
         Complete-SoundLiftStartup
+        Start-AsyncAppUpdateCheck
     } catch {
         Write-SoundLiftLog -Category startup -EventName 'initialization_failed' -Severity critical -ErrorRecord $_
         Write-SoundLiftLog -Category crash -EventName 'startup_crash' -Severity critical -ErrorRecord $_

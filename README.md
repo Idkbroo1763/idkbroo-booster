@@ -1,4 +1,4 @@
-# SoundLift V1.3.13
+# SoundLift V1.3.14
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
