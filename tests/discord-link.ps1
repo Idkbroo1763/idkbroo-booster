@@ -39,7 +39,7 @@ foreach ($requiredStartupFix in @('function Start-AsyncAppUpdateCheck', 'Downloa
 foreach ($requiredControlFeature in @(
  'function Invoke-QuickMute', 'function Register-SoundLiftHotKeys', 'function Show-HotkeyEditor',
  'Gyorsprofilok', 'DoNotDisturbCheck', 'ToolTip=',
- '$script:hotKeyVirtualKeys', 'Minden funkcióhoz külön számot válassz.'
+ '$script:hotKeyVirtualKeys', 'Select-Object -Unique'
 )) {
     if (-not $source.Contains($requiredControlFeature)) { throw "Missing V1.3.15 quick-control feature: $requiredControlFeature" }
 }
