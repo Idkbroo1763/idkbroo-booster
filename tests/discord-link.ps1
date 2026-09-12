@@ -28,7 +28,7 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $buildSource.Contains('RELEASE_CONFIGURATION_EMBEDDING_VERIFIED')) { throw 'Missing release configuration verification' }
-if (-not $source.Contains("`$script:appVersion = '1.3.8'")) { throw 'Application version was not updated to 1.3.8' }
+if (-not $source.Contains("`$script:appVersion = '1.3.9'")) { throw 'Application version was not updated to 1.3.9' }
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
@@ -44,6 +44,17 @@ foreach ($requiredUiFix in @(
     '$ApplyButton.Foreground = $window.Resources[''AccentContrastBrush'']'
 )) {
     if (-not $source.Contains($requiredUiFix)) { throw "Missing V1.3.6 UI fix: $requiredUiFix" }
+}
+foreach ($requiredReportFix in @(
+    'if ([int]$response.accepted -gt 0)',
+    'TextElement.Foreground="{TemplateBinding Foreground}"',
+    '<Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>'
+)) {
+    if (-not $source.Contains($requiredReportFix)) { throw "Missing V1.3.9 report/theme fix: $requiredReportFix" }
+}
+$logEventsSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\licensing\log-events\index.ts'))
+foreach ($requiredBackendFix in @('manual_diagnostic_report','user_description','diagnostic_report','submitted_by_user')) {
+    if (-not $logEventsSource.Contains($requiredBackendFix)) { throw "Missing manual report backend support: $requiredBackendFix" }
 }
 foreach ($requiredUpdaterFragment in @(
  'https://api.github.com/repos/Idkbroo1763/SoundLift/releases/latest',
@@ -79,7 +90,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.8'
+ $script:appVersion='1.3.9'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

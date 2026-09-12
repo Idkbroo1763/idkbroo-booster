@@ -12,6 +12,7 @@ const clientEvents = new Set([
   "activation_cancelled", "activation_succeeded", "validation_succeeded", "validation_failed", "validation_unavailable", "offline_grace_used",
   "license_rejected", "developer_license_used",
   "discord_link_required", "discord_link_succeeded", "discord_link_cancelled", "discord_link_check_failed", "discord_link_offline_grace_used",
+  "manual_diagnostic_report",
 ]);
 
 function reply(status: number, body: Record<string, unknown>) {
@@ -24,11 +25,11 @@ function clean(value: unknown, max: number) {
 }
 
 function cleanMetadata(input: unknown) {
-  const allowed = new Set(["packaged", "stage", "component", "old_version", "new_version", "current_version", "result", "code", "license_type", "grace_hours", "authorization_id", "exception_type", "message", "script_stack"]);
+  const allowed = new Set(["packaged", "stage", "component", "old_version", "new_version", "current_version", "result", "code", "license_type", "grace_hours", "authorization_id", "exception_type", "message", "script_stack", "user_description", "diagnostic_report", "submitted_by_user"]);
   const output: Record<string, string> = {};
   if (!input || typeof input !== "object" || Array.isArray(input)) return output;
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-    if (allowed.has(key)) output[key] = clean(value, key === "script_stack" ? 1600 : 900);
+    if (allowed.has(key)) output[key] = clean(value, key === "diagnostic_report" ? 5000 : key === "script_stack" ? 1600 : 900);
   }
   return output;
 }
