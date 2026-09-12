@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.10'
+$script:appVersion = '1.3.11'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.10" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.11" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -536,7 +536,7 @@ $xaml = @'
         <Setter.Value>
           <ControlTemplate TargetType="Button">
             <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{DynamicResource PrimaryTextBrush}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
@@ -551,6 +551,20 @@ $xaml = @'
       <Setter Property="Background" Value="{DynamicResource AccentGradient}"/><Setter Property="Foreground" Value="{DynamicResource AccentContrastBrush}"/>
       <Setter Property="FontSize" Value="15"/><Setter Property="Padding" Value="24,14"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{DynamicResource AccentContrastBrush}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.88"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.72"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
     <Style x:Key="UtilityButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Background" Value="{DynamicResource ControlBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
@@ -648,7 +662,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.10" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.11" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -730,7 +744,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.10" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.11" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -1716,6 +1730,11 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.11 – VILÁGOS MÓD ÉS KARAKTERKÓDOLÁS
+• A világos témában minden normál gomb sötét, jól olvasható feliratot kap.
+• A kiemelt gombok felirata továbbra is megfelelő kontrasztú.
+• A Discord-jelentések magyar ékezeteinek automatikus helyreállítása.
+
 V1.3.10 – KONTRASZT ÉS DISCORD-KÜLDÉS
 • A gombok, jelölőnégyzetek és témaválasztó saját kontrasztos szövegsablont kaptak világos módban.
 • A backend külön visszajelzi, hogy a jelentés valóban eljutott-e a Discord hibanaplójába.
@@ -2086,7 +2105,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.10'
+$script:trayIcon.Text = 'SoundLift V1.3.11'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
