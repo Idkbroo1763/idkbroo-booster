@@ -35,7 +35,7 @@ function clipped(value: unknown, limit = 900) {
   return text.length > limit ? `${text.slice(0, limit)}…` : text;
 }
 
-export async function storeAndForwardEvent(supabase: any, event: BackendLogEvent) {
+export async function storeAndForwardEvent(supabase: any, event: BackendLogEvent): Promise<boolean> {
   const record = {
     event_id: event.event_id ?? crypto.randomUUID(),
     occurred_at: event.timestamp_utc ?? new Date().toISOString(),
@@ -54,10 +54,13 @@ export async function storeAndForwardEvent(supabase: any, event: BackendLogEvent
 
   const { error } = await supabase.from("app_log_events").insert(record);
   if (error && error.code !== "23505") throw error;
-  if (error?.code === "23505") return;
+  if (error?.code === "23505") {
+    const { data: existing } = await supabase.from("app_log_events").select("discord_forwarded").eq("event_id", record.event_id).maybeSingle();
+    if (existing?.discord_forwarded === true) return true;
+  }
 
   const webhook = Deno.env.get(webhookNames[event.category]) ?? Deno.env.get("DISCORD_LOG_WEBHOOK_DEFAULT");
-  if (!webhook) return;
+  if (!webhook) return false;
 
   const fields = Object.entries(event.metadata ?? {}).slice(0, 8).map(([name, value]) => ({
     name: clipped(name, 80), value: clipped(value), inline: true,
@@ -79,6 +82,12 @@ export async function storeAndForwardEvent(supabase: any, event: BackendLogEvent
         }],
       }),
     });
-    if (response.ok) await supabase.from("app_log_events").update({ discord_forwarded: true }).eq("event_id", record.event_id);
-  } catch { /* A Discord hibája nem törheti el a licencellenőrzést vagy a logfogadást. */ }
+    if (response.ok) {
+      await supabase.from("app_log_events").update({ discord_forwarded: true }).eq("event_id", record.event_id);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }

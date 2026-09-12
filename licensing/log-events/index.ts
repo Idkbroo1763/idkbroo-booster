@@ -55,6 +55,7 @@ Deno.serve(async (request) => {
     if ((count ?? 0) >= 100) return reply(429, { error: "RATE_LIMITED" });
 
     let accepted = 0;
+    let discordForwarded = 0;
     for (const raw of body.events) {
       const category = clean(raw.category, 40);
       const eventName = clean(raw.event_name, 80);
@@ -82,10 +83,10 @@ Deno.serve(async (request) => {
           ...cleanMetadata(raw.data),
         },
       };
-      await storeAndForwardEvent(supabase, event);
+      if (await storeAndForwardEvent(supabase, event)) discordForwarded++;
       accepted++;
     }
-    return reply(200, { accepted });
+    return reply(200, { accepted, discord_forwarded: discordForwarded });
   } catch {
     return reply(500, { error: "SERVER_ERROR" });
   }
