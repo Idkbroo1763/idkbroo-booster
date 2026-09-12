@@ -28,11 +28,11 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $buildSource.Contains('RELEASE_CONFIGURATION_EMBEDDING_VERIFIED')) { throw 'Missing release configuration verification' }
-if (-not $source.Contains("`$script:appVersion = '1.3.11'")) { throw 'Application version was not updated to 1.3.11' }
+if (-not $source.Contains("`$script:appVersion = '1.3.12'")) { throw 'Application version was not updated to 1.3.12' }
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
-foreach ($requiredThemeMarker in @('#A855F7','#22D3EE','#FB923C','#F5C451','OLED fekete','#E8EEF8')) {
+foreach ($requiredThemeMarker in @('#A855F7','#22D3EE','#FB923C','#F5C451','OLED fekete')) {
     if (-not $source.Contains($requiredThemeMarker)) { throw "Missing SoundLift theme marker: $requiredThemeMarker" }
 }
 foreach ($requiredUiFix in @(
@@ -95,7 +95,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.11'
+ $script:appVersion='1.3.12'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

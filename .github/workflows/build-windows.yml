@@ -1,5 +1,5 @@
 name: Build Windows application
-run-name: SoundLift V1.3.10 letöltése
+run-name: SoundLift V1.3.12 letöltése
 
 on:
   workflow_dispatch:

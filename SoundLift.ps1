@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.11'
+$script:appVersion = '1.3.12'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.11" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.12" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -662,7 +662,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.11" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.12" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -744,7 +744,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.11" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.12" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -932,7 +932,6 @@ function Set-AppTheme([string]$themeName) {
         'Grafit és narancs' { @{ Accent='#FB923C'; AccentDark='#C2410C'; Page='#241307'; Hover='#422414'; Contrast='#111113' } }
         'Fekete és arany'   { @{ Accent='#F5C451'; AccentDark='#A16207'; Page='#211804'; Hover='#3B2D10'; Contrast='#111113' } }
         'OLED fekete'       { @{ Accent='#F8FAFC'; AccentDark='#64748B'; Page='#000000'; Hover='#202024'; Base='#000000'; Surface='#050505'; SurfaceAlt='#000000'; Control='#101012'; Border='#29292E'; Contrast='#09090B' } }
-        'Világos'           { @{ Accent='#2563EB'; AccentDark='#1D4ED8'; Page='#E8EEF8'; Hover='#3B82F6'; Base='#F8FAFC'; Surface='#FFFFFF'; SurfaceAlt='#F1F5F9'; Control='#E9EEF5'; Border='#CBD5E1'; Primary='#0F172A'; Secondary='#334155'; Muted='#64748B'; Section='#475569' } }
         default            { @{ Accent='#FF4057'; AccentDark='#8B0017'; Page='#20090B'; Hover='#3A1016' } }
     }
 
@@ -982,7 +981,7 @@ function Set-AppTheme([string]$themeName) {
 $script:themeNames = @(
     'Fekete és piros', 'Fekete és kék', 'Grafit és zöld',
     'Fekete és lila', 'Éjkék és türkiz', 'Grafit és narancs',
-    'Fekete és arany', 'OLED fekete', 'Világos'
+    'Fekete és arany', 'OLED fekete'
 )
 foreach ($themeName in $script:themeNames) { [void]$ThemeCombo.Items.Add($themeName) }
 $ThemeCombo.SelectedIndex = 0
@@ -1178,7 +1177,7 @@ function Set-AppState($state) {
     if ($null -ne $state.autoProfile) { $AutoProfileCheck.IsChecked = [bool]$state.autoProfile }
     if ($null -ne $state.instant) { $InstantCheck.IsChecked = [bool]$state.instant }
     if ($state.theme) {
-        $savedTheme = switch ([string]$state.theme) { 'Black & Red' {'Fekete és piros'} 'Black & Blue' {'Fekete és kék'} 'Graphite & Green' {'Grafit és zöld'} default {[string]$state.theme} }
+        $savedTheme = switch ([string]$state.theme) { 'Black & Red' {'Fekete és piros'} 'Black & Blue' {'Fekete és kék'} 'Graphite & Green' {'Grafit és zöld'} 'Világos' {'Fekete és piros'} default {[string]$state.theme} }
         if ($script:themeNames -contains $savedTheme) { $ThemeCombo.SelectedItem = $savedTheme; Set-AppTheme $savedTheme }
     }
     if ($null -ne $state.onboardingCompleted) { $script:onboardingCompleted = [bool]$state.onboardingCompleted }
@@ -1730,6 +1729,11 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.12 – TÉMAVÁLASZTÓ EGYSZERŰSÍTÉSE
+• A világos megjelenés teljesen kikerült az alkalmazásból.
+• A korábban világos témát használóknál automatikusan a Fekete és piros téma töltődik be.
+• A GitHub Actions futásneve mostantól mindig az aktuális verziót mutatja.
+
 V1.3.11 – VILÁGOS MÓD ÉS KARAKTERKÓDOLÁS
 • A világos témában minden normál gomb sötét, jól olvasható feliratot kap.
 • A kiemelt gombok felirata továbbra is megfelelő kontrasztú.
@@ -2105,7 +2109,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.11'
+$script:trayIcon.Text = 'SoundLift V1.3.12'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
