@@ -5,11 +5,12 @@ $ast=[System.Management.Automation.Language.Parser]::ParseInput($source,[ref]$to
 if ($errors.Count) { throw ($errors | Out-String) }
 $function = $ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Test-DiscordLinkOfflineGrace'},$true)
 Invoke-Expression $function.Extent.Text
-$script:installationId='test-install'; $script:discordLinkGraceHours=72
+$script:installationId='test-install'; $script:discordLinkGraceHours=720
 function Get-DiscordLinkCache { return $script:testCache }
 foreach($case in @(
  @{age=1;id='test-install';expected=$true},
- @{age=73;id='test-install';expected=$false},
+ @{age=719;id='test-install';expected=$true},
+ @{age=721;id='test-install';expected=$false},
  @{age=-1;id='test-install';expected=$false},
  @{age=1;id='other-install';expected=$false}
 )) {
@@ -28,10 +29,19 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $buildSource.Contains('RELEASE_CONFIGURATION_EMBEDDING_VERIFIED')) { throw 'Missing release configuration verification' }
-if (-not $source.Contains("`$script:appVersion = '1.3.12'")) { throw 'Application version was not updated to 1.3.12' }
-foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow')) {
+if (-not $source.Contains("`$script:appVersion = '1.3.13'")) { throw 'Application version was not updated to 1.3.13' }
+foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow','Disable-SoundLiftEffects')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
+$installerSource = Get-Content "$PSScriptRoot/../installer.iss" -Raw
+$uninstallerSource = Get-Content "$PSScriptRoot/../Uninstall-SoundLift.ps1" -Raw
+foreach ($requiredCleanupMarker in @('[UninstallRun]', 'Uninstall-SoundLift.ps1')) {
+    if (-not $installerSource.Contains($requiredCleanupMarker)) { throw "Missing clean uninstall integration: $requiredCleanupMarker" }
+}
+foreach ($requiredCleanupBehavior in @('Remove-SoundLiftInclude', "Join-Path `$env:APPDATA 'SoundLift'", "Join-Path `$env:LOCALAPPDATA 'SoundLift'", "'SoundLift.lnk'")) {
+    if (-not $uninstallerSource.Contains($requiredCleanupBehavior)) { throw "Missing clean uninstall behavior: $requiredCleanupBehavior" }
+}
+if (-not $source.Contains("`$script:discordLinkGraceHours = 720")) { throw 'Offline grace period is not 30 days' }
 foreach ($requiredThemeMarker in @('#A855F7','#22D3EE','#FB923C','#F5C451','OLED fekete')) {
     if (-not $source.Contains($requiredThemeMarker)) { throw "Missing SoundLift theme marker: $requiredThemeMarker" }
 }
@@ -95,7 +105,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.12'
+ $script:appVersion='1.3.13'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }

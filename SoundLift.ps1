@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.12'
+$script:appVersion = '1.3.13'
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -32,7 +32,7 @@ $script:licenseAnonKey = ''
 $script:logApiUrl = ''
 $script:logAnonKey = ''
 $script:discordLinkRequired = $false
-$script:discordLinkGraceHours = 72
+$script:discordLinkGraceHours = 720
 $script:loggerInitialized = $false
 $script:startupCompleted = $false
 
@@ -502,7 +502,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.12" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.13" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -662,7 +662,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.12" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.13" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -744,7 +744,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.12" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.13" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -856,7 +856,7 @@ $xaml = @'
                     <TextBlock Text="HANGFELDOLGOZÁS" Foreground="#A66B74" FontSize="10" FontWeight="Bold"/>
                     <TextBlock Text="Az Equalizer APO eredeti hangjára vált vissza." Foreground="#6F7888" FontSize="11" Margin="0,3,0,0"/>
                   </StackPanel>
-                  <Button Name="BypassButton" Content="⏻  Hanghatások kikapcsolása" Style="{StaticResource DangerButton}" HorizontalAlignment="Right" Margin="16,0,0,0"/>
+                  <Button Name="BypassButton" Content="⛨  Biztonságos mód" Style="{StaticResource DangerButton}" HorizontalAlignment="Right" Margin="16,0,0,0" ToolTip="A SoundLift hanghatásainak azonnali kikapcsolása és az eredeti hang visszaállítása"/>
                 </DockPanel>
               </Border>
             </Grid>
@@ -1729,6 +1729,12 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.13 – OFFLINE MÓD ÉS BIZTONSÁG
+• Korábban ellenőrzött telepítés internetkimaradáskor legfeljebb 30 napig használható.
+• Új Biztonságos mód kapcsolja ki a SoundLift hatásait és állítja vissza az eredeti hangot.
+• Az eltávolító kitakarítja a SoundLift APO-kapcsolatát, fájljait és helyi alkalmazásadatait.
+• Az automatikus tesztek ellenőrzik az offline határt, a biztonságos módot és a tiszta eltávolítást.
+
 V1.3.12 – TÉMAVÁLASZTÓ EGYSZERŰSÍTÉSE
 • A világos megjelenés teljesen kikerült az alkalmazásból.
 • A korábban világos témát használóknál automatikusan a Fekete és piros téma töltődik be.
@@ -1948,18 +1954,30 @@ $UndoButton.Add_Click({
         if (Test-Path $undo) { [IO.File]::Copy($undo, $own, $true); $StatusText.Text = 'Az előző hangbeállítás visszaállítva' }
     }
 })
-$BypassButton.Add_Click({
+
+function Disable-SoundLiftEffects {
     $apo = Get-ApoConfigDirectory
-    if ($apo) {
-        $main = Join-Path $apo 'config.txt'
-        if (Test-Path $main) {
-            $text = [IO.File]::ReadAllText($main)
-            $text = [Regex]::Replace($text, '(?im)^\s*#\s*SoundLift\s*\r?\n\s*Include:[^\r\n]+\r?\n?', '')
-            $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
-            $text = $text.TrimEnd() + "`r`n"
-            Write-TextWithRetry $main $text
-            $StatusText.Text = 'A SoundLift hanghatásai ki vannak kapcsolva'; $StatusBorder.Background = '#4A1F2D'
-        }
+    if (-not $apo) { throw 'Az Equalizer APO konfigurációs mappája nem található.' }
+    $main = Join-Path $apo 'config.txt'
+    if (-not (Test-Path $main)) { throw 'Az Equalizer APO config.txt fájlja nem található.' }
+    $text = Read-TextWithRetry $main
+    $text = [Regex]::Replace($text, '(?im)^\s*#\s*SoundLift\s*\r?\n\s*Include:[^\r\n]+\r?\n?', '')
+    $text = [Regex]::Replace($text, '(?im)^\s*Include:\s*SoundLift\.txt\s*\r?\n?', '')
+    Write-TextWithRetry $main ($text.TrimEnd() + "`r`n")
+    if ((Read-TextWithRetry $main) -match '(?im)^\s*Include:\s*SoundLift\.txt\s*$') {
+        throw 'A SoundLift kapcsolat kikapcsolása nem sikerült.'
+    }
+}
+
+$BypassButton.Add_Click({
+    $answer = [System.Windows.MessageBox]::Show('A biztonságos mód kikapcsolja a SoundLift összes hanghatását, és visszaállítja az Equalizer APO eredeti hangját. Folytatod?', 'SoundLift – Biztonságos mód', 'YesNo', 'Warning')
+    if ($answer -ne 'Yes') { return }
+    try {
+        Disable-SoundLiftEffects
+        $StatusText.Text = 'Biztonságos mód aktív • az eredeti hang visszaállítva'; $StatusBorder.Background = '#4A1F2D'
+    } catch {
+        Write-SoundLiftLog -Category crash -EventName 'handled_runtime_error' -Severity error -Data @{ component='safe_mode' } -ErrorRecord $_
+        [System.Windows.MessageBox]::Show("A biztonságos mód nem kapcsolható be:`n$($_.Exception.Message)", 'SoundLift – hiba', 'OK', 'Error') | Out-Null
     }
 })
 $DeviceButton.Add_Click({
@@ -2109,7 +2127,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.12'
+$script:trayIcon.Text = 'SoundLift V1.3.13'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
