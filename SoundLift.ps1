@@ -17,7 +17,11 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.14'
+$script:appVersion = '1.3.15'
+$script:hotKeyVirtualKeys = @(0x31,0x32,0x33,0x34,0x35,0x36,0x30)
+$script:doNotDisturb = $false
+$script:isQuickMuted = $false
+$script:preMuteVolume = 100
 $script:onboardingCompleted = $false
 # A kiadott alkalmazás univerzális: ingyenes módban indul, és ugyanabban az
 # EXE-ben aktiválható customer vagy developer licenc.
@@ -513,7 +517,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.14" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.15" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -673,7 +677,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.14" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.15" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -755,7 +759,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.14" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.15" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -807,6 +811,7 @@ $xaml = @'
                   <CheckBox Name="AutoProfileCheck" Content="Automatikus profilváltás"/>
                   <CheckBox Name="InstantCheck" Content="Módosítások azonnali alkalmazása"/>
                   <CheckBox Name="StartupCheck" Content="Automatikus indítás a Windowszal"/>
+                  <CheckBox Name="DoNotDisturbCheck" Content="Ne zavarjanak mód" ToolTip="Játék közben elrejti a nem fontos felugró értesítéseket."/>
                 </WrapPanel>
               </StackPanel>
               <Border Grid.Column="1" Background="#12291F" CornerRadius="9" Padding="12,7" VerticalAlignment="Center">
@@ -861,6 +866,7 @@ $xaml = @'
                     <Button Name="ReportProblemButton" Content="⚑  Hibajelentés küldése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
                     <Button Name="UpdateButton" Content="↻  Frissítés keresése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
                     <Button Name="ChangelogButton" Content="≡  Frissítési előzmények" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
+                    <Button Name="HotkeyButton" Content="⌨  Billentyűparancsok" Style="{StaticResource UtilityButton}" Margin="0,0,0,8" ToolTip="A globális profilváltó és gyors némító billentyűk szerkesztése."/>
                     <Button Name="RollbackButton" Content="↶  Korábbi verzió visszaállítása" Style="{StaticResource UtilityButton}" Margin="0"/>
                   </StackPanel>
                 </Border>
@@ -904,8 +910,14 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','AboutButton','PrivacyButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','DoNotDisturbCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','HotkeyButton','AboutButton','PrivacyButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
+$VolumeSlider.ToolTip = 'A teljes hangerő erősítése 0 és 300% között.'
+$BassSlider.ToolTip = 'A mélyhangok kiemelése. Nagy értéknél használd a torzításvédelmet.'
+$FrequencySlider.ToolTip = 'A basszuskiemelés középfrekvenciája.'
+$SafetyCheck.ToolTip = 'Automatikusan csökkenti a túlvezérlés és recsegés veszélyét.'
+$AutoProfileCheck.ToolTip = 'Futó alkalmazás alapján automatikusan kiválasztja a megfelelő profilt.'
+$InstantCheck.ToolTip = 'A csúszkák módosítását rövid késleltetéssel azonnal alkalmazza.'
 $VersionText.Text = "Telepített verzió: $script:appVersion"
 $SupportIdText.Text = "Támogatási ID: $(Get-SoundLiftSupportId)"
 $CopySupportIdButton.Add_Click({
@@ -983,10 +995,10 @@ function Set-AppTheme([string]$themeName) {
     foreach ($label in $script:eqValueLabels) { $label.Foreground = $window.Resources['AccentTextBrush'] }
     foreach ($label in $script:eqBandLabels) { $label.Foreground = $window.Resources['MutedTextBrush'] }
     $window.Foreground = $window.Resources['PrimaryTextBrush']
-    foreach ($control in @($MusicButton,$GameButton,$CombatButton,$R6Button,$DiscordButton,$MovieButton,$HeavyButton,$ResetButton,$CopySupportIdButton,$LicenseButton,$AboutButton,$PrivacyButton,$SaveButton,$LoadButton,$ExportButton,$ImportButton,$UndoButton,$TestButton,$DeviceButton,$DiagnosticsButton,$RepairApoButton,$ReportProblemButton,$UpdateButton,$RollbackButton,$ChangelogButton)) {
+    foreach ($control in @($MusicButton,$GameButton,$CombatButton,$R6Button,$DiscordButton,$MovieButton,$HeavyButton,$ResetButton,$CopySupportIdButton,$LicenseButton,$AboutButton,$PrivacyButton,$SaveButton,$LoadButton,$ExportButton,$ImportButton,$UndoButton,$TestButton,$DeviceButton,$DiagnosticsButton,$RepairApoButton,$ReportProblemButton,$UpdateButton,$RollbackButton,$ChangelogButton,$HotkeyButton)) {
         if ($control) { $control.Foreground = $window.Resources['PrimaryTextBrush'] }
     }
-    foreach ($checkBox in @($SafetyCheck,$AutoProfileCheck,$InstantCheck,$StartupCheck)) { if ($checkBox) { $checkBox.Foreground = $window.Resources['SecondaryTextBrush'] } }
+    foreach ($checkBox in @($SafetyCheck,$AutoProfileCheck,$InstantCheck,$StartupCheck,$DoNotDisturbCheck)) { if ($checkBox) { $checkBox.Foreground = $window.Resources['SecondaryTextBrush'] } }
     $ThemeCombo.Foreground = $window.Resources['PrimaryTextBrush']
     $VersionText.Foreground = $window.Resources['MutedTextBrush']; $SupportIdText.Foreground = $window.Resources['MutedTextBrush']; $LicenseStatusText.Foreground = $window.Resources['MutedTextBrush']
     $ApplyButton.Foreground = $window.Resources['AccentContrastBrush']
@@ -1176,10 +1188,11 @@ function Invoke-ApplyButton {
 
 function Get-AppState {
     return [PSCustomObject]@{
-        version = 5; profile = $script:activeProfile; theme = $script:themeName
+        version = 6; profile = $script:activeProfile; theme = $script:themeName
         onboardingCompleted = [bool]$script:onboardingCompleted
         volume = [int]$VolumeSlider.Value; bass = [int]$BassSlider.Value; frequency = [int]$FrequencySlider.Value
         safety = [bool]$SafetyCheck.IsChecked; autoProfile = [bool]$AutoProfileCheck.IsChecked; instant = [bool]$InstantCheck.IsChecked
+        doNotDisturb = [bool]$DoNotDisturbCheck.IsChecked; hotkeys = @($script:hotKeyVirtualKeys)
         eq = @($script:eqSliders | ForEach-Object { [int]$_.Value })
     }
 }
@@ -1191,6 +1204,11 @@ function Set-AppState($state) {
     if ($state.eq -and $state.eq.Count -eq 10) { Set-EqValues ([double[]]$state.eq) }
     if ($null -ne $state.autoProfile) { $AutoProfileCheck.IsChecked = [bool]$state.autoProfile }
     if ($null -ne $state.instant) { $InstantCheck.IsChecked = [bool]$state.instant }
+    if ($null -ne $state.doNotDisturb) { $DoNotDisturbCheck.IsChecked = [bool]$state.doNotDisturb; $script:doNotDisturb = [bool]$state.doNotDisturb }
+    if ($state.hotkeys -and $state.hotkeys.Count -eq 7) {
+        $candidateKeys = @($state.hotkeys | ForEach-Object { [int]$_ })
+        if ((@($candidateKeys | Select-Object -Unique)).Count -eq 7) { $script:hotKeyVirtualKeys = $candidateKeys }
+    }
     if ($state.theme) {
         $savedTheme = switch ([string]$state.theme) { 'Black & Red' {'Fekete és piros'} 'Black & Blue' {'Fekete és kék'} 'Graphite & Green' {'Grafit és zöld'} 'Világos' {'Fekete és piros'} default {[string]$state.theme} }
         if ($script:themeNames -contains $savedTheme) { $ThemeCombo.SelectedItem = $savedTheme; Set-AppTheme $savedTheme }
@@ -1657,7 +1675,11 @@ function Start-AsyncAppUpdateCheck {
                 $latestVersion = [version](([string]$release.tag_name).Trim().TrimStart([char[]]'vV'))
                 if ($latestVersion -gt [version]$script:appVersion) {
                     Write-SoundLiftLog -Category update -EventName 'update_available' -Data @{ old_version=$script:appVersion; new_version=$latestVersion }
-                    Show-AppUpdateDialog $release $latestVersion
+                    if ($script:doNotDisturb) {
+                        $StatusText.Text = "Új frissítés érhető el: V$latestVersion"
+                    } else {
+                        Show-AppUpdateDialog $release $latestVersion
+                    }
                 } else {
                     Write-SoundLiftLog -Category update -EventName 'update_check_succeeded' -Data @{ result='up_to_date'; current_version=$script:appVersion }
                 }
@@ -1774,6 +1796,13 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.15 – GYORSVEZÉRLÉS
+• Gyors némítás és visszakapcsolás a tálcáról vagy globális billentyűparanccsal.
+• Kereshető, egyszerűbb gyorsprofil-menü a tálcaikonban.
+• Beépített súgóbuborékok magyarázzák a fontos vezérlőket.
+• A profilváltó és némító billentyűparancsok szerkeszthetők, az ütközéseket az app ellenőrzi.
+• A Ne zavarjanak mód elrejti a profilváltási és automatikus frissítési felugrókat.
+
 V1.3.14 – RENDEZETT ESZKÖZTÁR
 • A profilkezelés, a hangrendszer és a támogatási funkciók külön, áttekinthető csoportba kerültek.
 • A műveleti gombok egységes szélességű, rendezett sorokban jelennek meg.
@@ -2102,7 +2131,7 @@ $autoTimer.Add_Tick({
         Invoke-ApplyButton
         $automaticName = if ($wanted -eq 'Music') { 'Zene' } elseif ($wanted -eq 'FiveM') { 'FiveM RP' } else { $wanted }
         $StatusText.Text = "Automatikus profilváltás • $automaticName profil aktív"
-        if ($script:trayIcon) { $script:trayIcon.ShowBalloonTip(1800, 'Profilváltás', "$wanted profil bekapcsolva", [Windows.Forms.ToolTipIcon]::Info) }
+        if ($script:trayIcon -and -not $script:doNotDisturb) { $script:trayIcon.ShowBalloonTip(1800, 'Profilváltás', "$wanted profil bekapcsolva", [Windows.Forms.ToolTipIcon]::Info) }
     }
 })
 $autoTimer.Start()
@@ -2128,6 +2157,10 @@ $StartupCheck.Add_Click({
         [System.Windows.MessageBox]::Show("Indítási beállítási hiba:`n$($_.Exception.Message)", 'Hiba', 'OK', 'Error') | Out-Null
     }
 })
+$DoNotDisturbCheck.Add_Click({
+    $script:doNotDisturb = [bool]$DoNotDisturbCheck.IsChecked
+    $StatusText.Text = if ($script:doNotDisturb) { 'Ne zavarjanak mód bekapcsolva' } else { 'Ne zavarjanak mód kikapcsolva' }
+})
 
 # Remember the complete UI state between launches.
 if (Test-Path $settingsPath) {
@@ -2145,8 +2178,61 @@ $deviceTimer.Interval = [TimeSpan]::FromSeconds(5)
 $deviceTimer.Add_Tick({ Update-DeviceText })
 $deviceTimer.Start(); Update-DeviceText
 
-# Global Ctrl+Alt+1..6 hotkeys. These also work while a game is focused.
+# Global hotkeys. These also work while a game is focused.
 $script:hotKeyButtons = @($MusicButton, $GameButton, $CombatButton, $R6Button, $DiscordButton, $MovieButton)
+
+function Invoke-QuickMute {
+    if (-not $script:isQuickMuted) {
+        $script:preMuteVolume = [Math]::Max(1, [int]$VolumeSlider.Value)
+        $VolumeSlider.Value = 0; $script:isQuickMuted = $true
+        $StatusText.Text = 'Gyors némítás bekapcsolva'
+    } else {
+        $VolumeSlider.Value = $script:preMuteVolume; $script:isQuickMuted = $false
+        $StatusText.Text = "Hang visszakapcsolva • $($script:preMuteVolume)%"
+    }
+    Invoke-ApplyButton
+}
+
+function Register-SoundLiftHotKeys {
+    if (-not $script:windowHandle) { return }
+    for ($i = 0; $i -lt 7; $i++) { [void][AudioAppNative]::UnregisterHotKey($script:windowHandle, 101 + $i) }
+    for ($i = 0; $i -lt 7; $i++) {
+        if (-not [AudioAppNative]::RegisterHotKey($script:windowHandle, 101 + $i, 0x0003, [uint32]$script:hotKeyVirtualKeys[$i])) {
+            throw "A Ctrl+Alt+$([char]$script:hotKeyVirtualKeys[$i]) kombinációt egy másik program már használja."
+        }
+    }
+}
+
+function Show-HotkeyEditor {
+    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Billentyűparancsok'; $dialog.Width=520; $dialog.Height=570
+    $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+    $root=[Windows.Controls.Grid]::new(); $root.Margin=[Windows.Thickness]::new(26)
+    $root.RowDefinitions.Add([Windows.Controls.RowDefinition]::new()); $actionsRow=[Windows.Controls.RowDefinition]::new(); $actionsRow.Height=[Windows.GridLength]::Auto; $root.RowDefinitions.Add($actionsRow)
+    $panel=[Windows.Controls.StackPanel]::new(); $title=[Windows.Controls.TextBlock]::new(); $title.Text='Billentyűparancsok'; $title.FontSize=23; $title.FontWeight='Bold'; $title.Foreground=$window.Resources['AccentTextBrush']; $title.Margin=[Windows.Thickness]::new(0,0,0,5)
+    $hint=[Windows.Controls.TextBlock]::new(); $hint.Text='Minden parancs Ctrl+Alt + a kiválasztott szám. Egy szám csak egyszer használható.'; $hint.TextWrapping='Wrap'; $hint.Foreground='#94A3B8'; $hint.Margin=[Windows.Thickness]::new(0,0,0,15)
+    [void]$panel.Children.Add($title); [void]$panel.Children.Add($hint)
+    $labels=@('Zene','FiveM RP','FiveM PvP','Rainbow Six Siege','Discord','Film','Gyors némítás'); $selectors=@()
+    for($i=0;$i -lt $labels.Count;$i++) {
+        $row=[Windows.Controls.DockPanel]::new(); $row.Margin=[Windows.Thickness]::new(0,0,0,8)
+        $label=[Windows.Controls.TextBlock]::new(); $label.Text=$labels[$i]; $label.Width=250; $label.VerticalAlignment='Center'; $label.FontWeight='SemiBold'
+        $combo=[Windows.Controls.ComboBox]::new(); $combo.Width=150; $combo.Height=34; $combo.HorizontalAlignment='Right'
+        foreach($number in 0..9){[void]$combo.Items.Add("Ctrl+Alt+$number")}; $currentNumber=[int]([char]$script:hotKeyVirtualKeys[$i]).ToString(); $combo.SelectedItem="Ctrl+Alt+$currentNumber"
+        [Windows.Controls.DockPanel]::SetDock($combo,'Right'); [void]$row.Children.Add($combo); [void]$row.Children.Add($label); [void]$panel.Children.Add($row); $selectors += $combo
+    }
+    $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'; $buttons.Margin=[Windows.Thickness]::new(0,14,0,0)
+    $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Mégse'; $cancel.Width=100; $cancel.Margin=[Windows.Thickness]::new(0,0,10,0); $cancel.Style=$window.Resources['UtilityButton']
+    $save=[Windows.Controls.Button]::new(); $save.Content='Mentés'; $save.Width=120; $save.Style=$window.Resources['PrimaryButton']
+    $cancel.Add_Click({$dialog.Close()}.GetNewClosure())
+    $save.Add_Click({
+        $numbers=@($selectors|ForEach-Object{[int]([string]$_.SelectedItem).Substring(9)})
+        if ((@($numbers|Select-Object -Unique)).Count -ne 7) { [System.Windows.MessageBox]::Show('Minden funkcióhoz külön számot válassz.', 'Billentyűütközés', 'OK', 'Warning')|Out-Null; return }
+        $previous=@($script:hotKeyVirtualKeys); $script:hotKeyVirtualKeys=@($numbers|ForEach-Object{0x30+$_})
+        try { Register-SoundLiftHotKeys; $dialog.Close(); $StatusText.Text='A billentyűparancsok mentve' } catch { $script:hotKeyVirtualKeys=$previous; Register-SoundLiftHotKeys; [System.Windows.MessageBox]::Show($_.Exception.Message,'Billentyűütközés','OK','Warning')|Out-Null }
+    }.GetNewClosure())
+    [void]$buttons.Children.Add($cancel); [void]$buttons.Children.Add($save); [Windows.Controls.Grid]::SetRow($buttons,1); [void]$root.Children.Add($panel); [void]$root.Children.Add($buttons); $dialog.Content=$root; $dialog.ShowDialog()|Out-Null
+}
+$HotkeyButton.Add_Click({ Show-HotkeyEditor })
+
 $script:hotKeyHook = [Windows.Interop.HwndSourceHook]{
     param([IntPtr]$hookHwnd, [int]$message, [IntPtr]$wParam, [IntPtr]$lParam, [ref]$handled)
     if ($message -eq 0x0312) {
@@ -2154,6 +2240,8 @@ $script:hotKeyHook = [Windows.Interop.HwndSourceHook]{
         if ($index -ge 0 -and $index -lt $script:hotKeyButtons.Count) {
             $script:hotKeyButtons[$index].RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent)))
             Invoke-ApplyButton; $handled.Value = $true
+        } elseif ($wParam.ToInt32() -eq 107) {
+            Invoke-QuickMute; $handled.Value = $true
         }
     }
     return [IntPtr]::Zero
@@ -2171,29 +2259,44 @@ $window.Add_SourceInitialized({
     } catch { }
     $script:windowSource = [Windows.Interop.HwndSource]::FromHwnd($script:windowHandle)
     $script:windowSource.AddHook($script:hotKeyHook)
-    for ($i = 0; $i -lt 6; $i++) { [void][AudioAppNative]::RegisterHotKey($script:windowHandle, 101 + $i, 0x0003, 0x31 + $i) }
+    try { Register-SoundLiftHotKeys } catch { $StatusText.Text=$_.Exception.Message; $StatusBorder.Background='#4A1F2D' }
 })
 
 # Tray icon: minimize or close to tray, double-click to restore.
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.14'
+$script:trayIcon.Text = 'SoundLift V1.3.15'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
 $showItem.Add_Click({ $window.Show(); $window.WindowState = 'Normal'; $window.Activate() })
 [void]$trayMenu.Items.Add('-')
+$searchLabel = New-Object Windows.Forms.ToolStripLabel -ArgumentList 'Profil keresése:'; $searchLabel.ForeColor=[Drawing.Color]::Gray; [void]$trayMenu.Items.Add($searchLabel)
+$searchBox = New-Object Windows.Forms.ToolStripTextBox
+$searchBox.ToolTipText = 'Írj be egy profilnevet'; [void]$trayMenu.Items.Add($searchBox)
+$profileMenu = New-Object Windows.Forms.ToolStripMenuItem -ArgumentList 'Gyorsprofilok'
 $trayProfiles = @(
-    @('Zene - Ctrl+Alt+1', $MusicButton), @('FiveM RP - Ctrl+Alt+2', $GameButton),
-    @('FiveM harc - Ctrl+Alt+3', $CombatButton), @('R6 - Ctrl+Alt+4', $R6Button),
-    @('Discord - Ctrl+Alt+5', $DiscordButton), @('Film - Ctrl+Alt+6', $MovieButton)
+    @('Zene', $MusicButton), @('FiveM RP', $GameButton), @('FiveM PvP', $CombatButton),
+    @('Rainbow Six Siege', $R6Button), @('Discord', $DiscordButton), @('Film', $MovieButton)
 )
+$script:trayProfileItems = @()
 foreach ($entry in $trayProfiles) {
     $profileButton = $entry[1]
-    $item = $trayMenu.Items.Add([string]$entry[0])
+    $item = $profileMenu.DropDownItems.Add([string]$entry[0])
     $item.Add_Click({ $profileButton.RaiseEvent((New-Object Windows.RoutedEventArgs([Windows.Controls.Button]::ClickEvent))); Invoke-ApplyButton }.GetNewClosure())
+    $script:trayProfileItems += $item
 }
+[void]$trayMenu.Items.Add($profileMenu)
+$searchBox.Add_TextChanged({
+    $query=$searchBox.Text.Trim()
+    foreach($profileItem in $script:trayProfileItems){$profileItem.Visible=[string]::IsNullOrWhiteSpace($query) -or $profileItem.Text.IndexOf($query,[StringComparison]::OrdinalIgnoreCase)-ge 0}
+    $profileMenu.ShowDropDown()
+}.GetNewClosure())
+$muteItem = $trayMenu.Items.Add('Gyors némítás')
+$muteItem.Add_Click({ Invoke-QuickMute })
+$dndItem = New-Object Windows.Forms.ToolStripMenuItem -ArgumentList 'Ne zavarjanak mód'; $dndItem.CheckOnClick=$true; $dndItem.Checked=$script:doNotDisturb
+$dndItem.Add_CheckedChanged({$script:doNotDisturb=$dndItem.Checked; $DoNotDisturbCheck.IsChecked=$script:doNotDisturb}.GetNewClosure()); [void]$trayMenu.Items.Add($dndItem)
 [void]$trayMenu.Items.Add('-')
 $exitItem = $trayMenu.Items.Add('Kilépés')
 $exitItem.Add_Click({ $script:reallyExit = $true; $window.Close() })
@@ -2211,7 +2314,7 @@ $window.Add_Closing({
     if (-not $script:reallyExit) { $eventArgs.Cancel = $true; $window.Hide() }
 })
 $window.Add_Closed({
-    for ($i = 0; $i -lt 6; $i++) { [void][AudioAppNative]::UnregisterHotKey($script:windowHandle, 101 + $i) }
+    for ($i = 0; $i -lt 7; $i++) { [void][AudioAppNative]::UnregisterHotKey($script:windowHandle, 101 + $i) }
     if ($script:windowSource) { $script:windowSource.RemoveHook($script:hotKeyHook) }
     $script:trayIcon.Visible = $false; $script:trayIcon.Dispose()
 })
