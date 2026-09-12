@@ -29,7 +29,9 @@ Deno.serve(async (request) => {
     const productId = String(body.product_id ?? "").trim();
     const deviceId = String(body.device_id ?? "").trim().toLowerCase();
     const installationId = String(body.installation_id ?? "").trim().toLowerCase();
-    if (licenseKey.length < 24 || licenseKey.length > 160 || !/^[a-f0-9]{64}$/.test(deviceId) || !/^[a-z0-9][a-z0-9_-]{2,63}$/.test(productId) || !uuidPattern.test(installationId)) {
+    const action = String(body.action ?? "verify");
+    const simulationLicenseId = String(body.simulation_license_id ?? "").trim().toLowerCase();
+    if (!["verify","list_owner_targets"].includes(action) || licenseKey.length < 24 || licenseKey.length > 160 || !/^[a-f0-9]{64}$/.test(deviceId) || !/^[a-z0-9][a-z0-9_-]{2,63}$/.test(productId) || !uuidPattern.test(installationId)) {
       return reply(400, { allowed: false, code: "INVALID_REQUEST", message: "Érvénytelen licenckérés." });
     }
 
@@ -50,11 +52,12 @@ Deno.serve(async (request) => {
       p_key_hash: keyHash,
       p_product_code: productId,
       p_device_id: deviceId,
+      p_discord_id: linkedUser.discord_user_id,
     });
     if (error) throw error;
     const allowed = data?.allowed === true;
     const rejectedCode = String(data?.code ?? "UNKNOWN");
-    const isSecurity = !allowed && ["INVALID_LICENSE", "LICENSE_BLOCKED", "LICENSE_EXPIRED", "DEVICE_LIMIT"].includes(rejectedCode);
+    const isSecurity = !allowed && ["INVALID_LICENSE", "LICENSE_BLOCKED", "LICENSE_EXPIRED", "DEVICE_LIMIT", "DISCORD_ACCOUNT_MISMATCH"].includes(rejectedCode);
     const eventName = allowed ? String(data.activation_event ?? "validated") : "license_rejected";
     await storeAndForwardEvent(supabase, {
       category: data?.license_type === "developer" && allowed ? "developer_access" : isSecurity ? "security" : "license",
@@ -74,10 +77,59 @@ Deno.serve(async (request) => {
         device_ref: deviceId.slice(0, 12),
       },
     });
-    const publicData = { ...data };
+    if (!allowed) {
+      const publicData = { ...data };
+      delete publicData.internal_license_id;
+      delete publicData.activation_event;
+      return reply(403, publicData);
+    }
+
+    const actualLicenseId = String(data.internal_license_id);
+    const isOwner = data.is_owner === true;
+    if (action === "list_owner_targets") {
+      if (!isOwner) {
+        await storeAndForwardEvent(supabase, { category:"security",event_name:"owner_mode_rejected",severity:"warning",installation_id:installationId,source:"backend",trusted:true,metadata:{ license_ref:actualLicenseId } });
+        return reply(403, { allowed:false,code:"OWNER_REQUIRED",message:"Ehhez tulajdonosi jogosultság szükséges." });
+      }
+      const { data: targets, error: targetError } = await supabase
+        .from("licenses")
+        .select("id,customer_name,license_type,status,expires_at,license_products!inner(product_id)")
+        .eq("license_products.product_id", productId)
+        .eq("status", "active")
+        .order("customer_name", { ascending:true });
+      if (targetError) throw targetError;
+      const safeTargets = (targets ?? []).filter((item:any) => !item.expires_at || new Date(item.expires_at) > new Date()).map((item:any) => ({
+        license_id:item.id,
+        label:String(item.customer_name || `Licenc ${String(item.id).slice(0,8)}`).slice(0,80),
+        license_type:item.license_type,
+      }));
+      return reply(200, { allowed:true,is_owner:true,targets:safeTargets });
+    }
+
+    let entitlementLicenseId = actualLicenseId;
+    let simulatedLicense: Record<string,unknown>|null = null;
+    if (simulationLicenseId) {
+      if (!isOwner) return reply(403, { allowed:false,code:"OWNER_REQUIRED",message:"Ehhez tulajdonosi jogosultság szükséges." });
+      if (!uuidPattern.test(simulationLicenseId)) return reply(400, { allowed:false,code:"INVALID_SIMULATION_TARGET",message:"Érvénytelen tesztlicenc." });
+      const { data: target, error: targetError } = await supabase
+        .from("licenses")
+        .select("id,customer_name,status,expires_at,license_products!inner(product_id)")
+        .eq("id",simulationLicenseId).eq("license_products.product_id",productId).maybeSingle();
+      if (targetError) throw targetError;
+      if (!target || target.status !== "active" || (target.expires_at && new Date(target.expires_at) <= new Date())) {
+        return reply(404, { allowed:false,code:"SIMULATION_TARGET_UNAVAILABLE",message:"A kiválasztott tesztlicenc nem használható." });
+      }
+      entitlementLicenseId = target.id;
+      simulatedLicense = { license_id:target.id,label:String(target.customer_name || `Licenc ${target.id.slice(0,8)}`).slice(0,80) };
+      await storeAndForwardEvent(supabase, { category:"developer_access",event_name:"owner_license_simulation",severity:"warning",installation_id:installationId,source:"backend",trusted:true,metadata:{ owner_license_ref:actualLicenseId,simulated_license_ref:target.id } });
+    }
+
+    const { data: features, error: featureError } = await supabase.rpc("get_soundlift_license_features", { p_license_id:entitlementLicenseId });
+    if (featureError) throw featureError;
+    const publicData = { ...data, is_owner:isOwner, features:features ?? [], simulated_license:simulatedLicense };
     delete publicData.internal_license_id;
     delete publicData.activation_event;
-    return reply(allowed ? 200 : 403, publicData);
+    return reply(200, publicData);
   } catch (error) {
     try {
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });

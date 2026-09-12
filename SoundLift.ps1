@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.15'
+$script:appVersion = '1.3.16'
 $script:hotKeyVirtualKeys = @(0x31,0x32,0x33,0x34,0x35,0x36,0x30)
 $script:doNotDisturb = $false
 $script:isQuickMuted = $false
@@ -27,6 +27,9 @@ $script:onboardingCompleted = $false
 # EXE-ben aktiválható customer vagy developer licenc.
 $script:licenseMode = 'free'
 $script:currentLicenseType = 'free'
+$script:isOwner = $false
+$script:licenseFeatures = @{}
+$script:simulatedLicenseLabel = ''
 $script:licenseApiUrl = ''
 $script:licenseProductId = ''
 $script:licenseAnonKey = ''
@@ -378,10 +381,10 @@ function Get-SavedLicenseState {
     try { return Unprotect-LicenseState ([IO.File]::ReadAllText($path)) } catch { return $null }
 }
 
-function Save-LicenseState([string]$licenseKey, [string]$licenseType, [string]$authorizationId) {
+function Save-LicenseState([string]$licenseKey, [string]$licenseType, [string]$authorizationId, [object[]]$features, [bool]$isOwner) {
     $directory = Join-Path $env:APPDATA 'SoundLift'
     if (-not (Test-Path $directory)) { [void][IO.Directory]::CreateDirectory($directory) }
-    $state = [PSCustomObject]@{ key=$licenseKey.Trim(); licenseType=$licenseType; authorizationId=$authorizationId; lastSuccessUtc=[DateTime]::UtcNow.ToString('o') }
+    $state = [PSCustomObject]@{ key=$licenseKey.Trim(); licenseType=$licenseType; authorizationId=$authorizationId; features=@($features); isOwner=$isOwner; lastSuccessUtc=[DateTime]::UtcNow.ToString('o') }
     [IO.File]::WriteAllText((Join-Path $directory 'license.dat'), (Protect-LicenseState $state), [Text.Encoding]::UTF8)
 }
 
@@ -389,9 +392,10 @@ function Remove-LicenseState {
     $path = Join-Path $env:APPDATA 'SoundLift\license.dat'
     if (Test-Path $path) { Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue }
     $script:currentLicenseType = 'free'
+    $script:isOwner = $false; $script:licenseFeatures = @{}; $script:simulatedLicenseLabel = ''
 }
 
-function Invoke-LicenseApi([string]$licenseKey) {
+function Invoke-LicenseApi([string]$licenseKey, [string]$action = 'verify', [string]$simulationLicenseId = '') {
     if ([string]::IsNullOrWhiteSpace($script:licenseApiUrl) -or [string]::IsNullOrWhiteSpace($script:licenseProductId)) {
         throw 'A SoundLift licenckiszolgálója nincs beállítva.'
     }
@@ -400,7 +404,9 @@ function Invoke-LicenseApi([string]$licenseKey) {
         $headers['apikey'] = $script:licenseAnonKey
         $headers['Authorization'] = "Bearer $($script:licenseAnonKey)"
     }
-    $body = @{ license_key = $licenseKey.Trim(); product_id = $script:licenseProductId; device_id = Get-LicenseDeviceId; installation_id = $script:installationId; installation_proof=(Get-InstallationProof) } | ConvertTo-Json -Compress
+    $requestData = @{ license_key=$licenseKey.Trim(); product_id=$script:licenseProductId; device_id=Get-LicenseDeviceId; installation_id=$script:installationId; installation_proof=(Get-InstallationProof); action=$action }
+    if (-not [string]::IsNullOrWhiteSpace($simulationLicenseId)) { $requestData.simulation_license_id=$simulationLicenseId }
+    $body = $requestData | ConvertTo-Json -Compress
     try {
         return Invoke-RestMethod -Uri $script:licenseApiUrl -Method Post -Headers $headers -Body $body -TimeoutSec 12
     } catch {
@@ -418,6 +424,24 @@ function Invoke-LicenseApi([string]$licenseKey) {
             } catch { }
         }
         throw
+    }
+}
+
+function Set-LicenseFeatures([object[]]$features) {
+    $script:licenseFeatures = @{}
+    foreach ($feature in @($features)) {
+        $key = [string]$feature.feature_key
+        if ($key -match '^[a-z][a-z0-9_]{2,63}$') { $script:licenseFeatures[$key] = $feature }
+    }
+}
+
+function Set-LicenseResponse([object]$response, [switch]$Persist, [string]$licenseKey = '') {
+    $script:currentLicenseType = if ($response.license_type) { [string]$response.license_type } else { 'customer' }
+    $script:isOwner = ($response.is_owner -eq $true)
+    Set-LicenseFeatures @($response.features)
+    $script:simulatedLicenseLabel = if ($response.simulated_license) { [string]$response.simulated_license.label } else { '' }
+    if ($Persist -and -not [string]::IsNullOrWhiteSpace($licenseKey) -and -not $response.simulated_license) {
+        Save-LicenseState $licenseKey $script:currentLicenseType ([string]$response.authorization_id) @($response.features) $script:isOwner
     }
 }
 
@@ -454,8 +478,11 @@ function Confirm-SoundLiftLicense {
     if (-not $PromptForKey -and $saved -and $saved.lastSuccessUtc) {
         try {
             $cachedAge = ([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours
-            if ($cachedAge -ge 0 -and $cachedAge -le 720) {
+            # Rövid gyorsítótár: a legtöbb indítás azonnali, de az új vagy
+            # visszavont feature flagek legfeljebb egy órán belül frissülnek.
+            if ($cachedAge -ge 0 -and $cachedAge -le 1) {
                 $script:currentLicenseType = if ($saved.licenseType) { [string]$saved.licenseType } else { 'customer' }
+                $script:isOwner = ($saved.isOwner -eq $true); Set-LicenseFeatures @($saved.features)
                 return $true
             }
         } catch { }
@@ -463,8 +490,7 @@ function Confirm-SoundLiftLicense {
     try {
         $response = Invoke-LicenseApi $key
         if ($response.allowed -eq $true) {
-            $script:currentLicenseType = [string]$response.license_type
-            Save-LicenseState $key $script:currentLicenseType ([string]$response.authorization_id)
+            Set-LicenseResponse $response -Persist -licenseKey $key
             $eventName = if (-not $PromptForKey -and $saved -and $saved.key) { 'validation_succeeded' } else { 'activation_succeeded' }
             Write-SoundLiftLog -Category license -EventName $eventName -Data @{ license_type=$response.license_type; code=$response.code }
             if ([string]$response.license_type -eq 'developer') {
@@ -486,6 +512,7 @@ function Confirm-SoundLiftLicense {
             try {
                 if (([DateTime]::UtcNow - [DateTime]::Parse([string]$saved.lastSuccessUtc).ToUniversalTime()).TotalHours -le 72) {
                     $script:currentLicenseType = if ($saved.licenseType) { [string]$saved.licenseType } else { 'customer' }
+                    $script:isOwner = ($saved.isOwner -eq $true); Set-LicenseFeatures @($saved.features)
                     Write-SoundLiftLog -Category license -EventName 'offline_grace_used' -Severity warning -Data @{ grace_hours=72 }
                     return $true
                 }
@@ -517,7 +544,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.15" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.16" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -677,7 +704,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.15" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.16" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -704,6 +731,10 @@ $xaml = @'
             <Button Name="MovieButton" Content="▶   Film"/>
             <Button Name="HeavyButton" Content="ϟ   Erőteljes basszus"/>
             <Button Name="ResetButton" Content="↺   Alapbeállítások"/>
+            <TextBlock Name="CustomFeaturesTitle" Text="EGYEDI FUNKCIÓK" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource SectionTextBrush}" Margin="4,12,0,5" Visibility="Collapsed"/>
+            <Button Name="ExtraBassProButton" Content="✦   Extra Bass Pro" Visibility="Collapsed"/>
+            <Button Name="VoiceBoostButton" Content="◈   Voice Boost" Visibility="Collapsed"/>
+            <Button Name="CustomPresetXButton" Content="◆   Custom Preset X" Visibility="Collapsed"/>
           </StackPanel>
           </ScrollViewer>
           <StackPanel Grid.Row="2">
@@ -759,7 +790,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.15" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.16" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -867,6 +898,7 @@ $xaml = @'
                     <Button Name="UpdateButton" Content="↻  Frissítés keresése" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
                     <Button Name="ChangelogButton" Content="≡  Frissítési előzmények" Style="{StaticResource UtilityButton}" Margin="0,0,0,8"/>
                     <Button Name="HotkeyButton" Content="⌨  Billentyűparancsok" Style="{StaticResource UtilityButton}" Margin="0,0,0,8" ToolTip="A globális profilváltó és gyors némító billentyűk szerkesztése."/>
+                    <Button Name="OwnerModeButton" Content="⚙  Owner tesztmód" Style="{StaticResource UtilityButton}" Margin="0,0,0,8" Visibility="Collapsed"/>
                     <Button Name="RollbackButton" Content="↶  Korábbi verzió visszaállítása" Style="{StaticResource UtilityButton}" Margin="0"/>
                   </StackPanel>
                 </Border>
@@ -910,7 +942,7 @@ $appIconPath = Join-Path $script:appDirectory 'SoundLift.ico'
 if (Test-Path $appIconPath) {
     try { $window.Icon = [Windows.Media.Imaging.BitmapFrame]::Create([Uri]$appIconPath) } catch { }
 }
-$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','DoNotDisturbCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','ChangelogButton','HotkeyButton','AboutButton','PrivacyButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
+$names = @('StatusBorder','StatusText','DeviceText','VolumeValue','BassValue','FrequencyValue','VolumeSlider','BassSlider','FrequencySlider','SafetyCheck','MusicButton','GameButton','CombatButton','R6Button','DiscordButton','MovieButton','HeavyButton','ResetButton','CustomFeaturesTitle','ExtraBassProButton','VoiceBoostButton','CustomPresetXButton','ApplyButton','EqPanel','AutoProfileCheck','InstantCheck','StartupCheck','DoNotDisturbCheck','ClipText','SaveButton','LoadButton','ExportButton','ImportButton','UndoButton','BypassButton','TestButton','DeviceButton','DiagnosticsButton','RepairApoButton','ReportProblemButton','UpdateButton','RollbackButton','OwnerModeButton','ChangelogButton','HotkeyButton','AboutButton','PrivacyButton','ActiveProfileText','ThemeCombo','VersionText','SupportIdText','CopySupportIdButton','LicenseStatusText','LicenseButton')
 foreach ($name in $names) { Set-Variable -Name $name -Value $window.FindName($name) }
 $VolumeSlider.ToolTip = 'A teljes hangerő erősítése 0 és 300% között.'
 $BassSlider.ToolTip = 'A mélyhangok kiemelése. Nagy értéknél használd a torzításvédelmet.'
@@ -995,7 +1027,7 @@ function Set-AppTheme([string]$themeName) {
     foreach ($label in $script:eqValueLabels) { $label.Foreground = $window.Resources['AccentTextBrush'] }
     foreach ($label in $script:eqBandLabels) { $label.Foreground = $window.Resources['MutedTextBrush'] }
     $window.Foreground = $window.Resources['PrimaryTextBrush']
-    foreach ($control in @($MusicButton,$GameButton,$CombatButton,$R6Button,$DiscordButton,$MovieButton,$HeavyButton,$ResetButton,$CopySupportIdButton,$LicenseButton,$AboutButton,$PrivacyButton,$SaveButton,$LoadButton,$ExportButton,$ImportButton,$UndoButton,$TestButton,$DeviceButton,$DiagnosticsButton,$RepairApoButton,$ReportProblemButton,$UpdateButton,$RollbackButton,$ChangelogButton,$HotkeyButton)) {
+    foreach ($control in @($MusicButton,$GameButton,$CombatButton,$R6Button,$DiscordButton,$MovieButton,$HeavyButton,$ResetButton,$ExtraBassProButton,$VoiceBoostButton,$CustomPresetXButton,$CopySupportIdButton,$LicenseButton,$AboutButton,$PrivacyButton,$SaveButton,$LoadButton,$ExportButton,$ImportButton,$UndoButton,$TestButton,$DeviceButton,$DiagnosticsButton,$RepairApoButton,$ReportProblemButton,$UpdateButton,$RollbackButton,$OwnerModeButton,$ChangelogButton,$HotkeyButton)) {
         if ($control) { $control.Foreground = $window.Resources['PrimaryTextBrush'] }
     }
     foreach ($checkBox in @($SafetyCheck,$AutoProfileCheck,$InstantCheck,$StartupCheck,$DoNotDisturbCheck)) { if ($checkBox) { $checkBox.Foreground = $window.Resources['SecondaryTextBrush'] } }
@@ -1058,6 +1090,9 @@ $DiscordButton.Add_Click({ $script:activeProfile = 'Discord'; Set-Profile 130 0 
 $MovieButton.Add_Click({ $script:activeProfile = 'Movie'; Set-Profile 145 5 65 $true; Set-EqValues @(1,1,0,-1,-2,0,2,2,1,1) })
 $HeavyButton.Add_Click({ $script:activeProfile = 'Heavy'; Set-Profile 175 11 58 $true; Set-EqValues @(2,2,1,-2,-2,-1,1,2,1,0) })
 $ResetButton.Add_Click({ $script:activeProfile = 'Custom'; Set-Profile 100 0 75 $true; Set-EqValues @(0,0,0,0,0,0,0,0,0,0) })
+$ExtraBassProButton.Add_Click({ $script:activeProfile='Extra Bass Pro'; Set-Profile 185 14 55 $true; Set-EqValues @(5,5,3,0,-2,-1,0,1,0,-1) })
+$VoiceBoostButton.Add_Click({ $script:activeProfile='Voice Boost'; Set-Profile 145 0 105 $true; Set-EqValues @(-4,-3,-2,0,2,4,5,3,0,-2) })
+$CustomPresetXButton.Add_Click({ $script:activeProfile='Custom Preset X'; Set-Profile 155 7 68 $true; Set-EqValues @(3,2,1,-1,-2,1,3,2,1,0) })
 
 $apoDirectory = Get-ApoConfigDirectory
 if ($apoDirectory) {
@@ -1529,6 +1564,42 @@ function Restore-SoundLiftPreviousVersion {
     } catch { [System.Windows.MessageBox]::Show("A visszaállítás nem indítható el:`n$($_.Exception.Message)", 'SoundLift – Visszaállítás', 'OK', 'Error') | Out-Null }
 }
 
+function Show-OwnerLicenseSimulator {
+    if (-not $script:isOwner) {
+        Write-SoundLiftLog -Category security -EventName 'owner_mode_rejected' -Severity warning
+        return
+    }
+    $saved = Get-SavedLicenseState
+    if (-not $saved -or [string]::IsNullOrWhiteSpace([string]$saved.key)) { return }
+    try { $targets = Invoke-LicenseApi ([string]$saved.key) 'list_owner_targets' }
+    catch { [System.Windows.MessageBox]::Show("A tesztlicencek most nem kérhetők le.`n`n$($_.Exception.Message)",'SoundLift – Owner tesztmód','OK','Error') | Out-Null; return }
+    if ($targets.allowed -ne $true -or $targets.is_owner -ne $true) { return }
+
+    $dialog=[Windows.Window]::new(); $dialog.Title='SoundLift – Owner / Developer tesztmód'; $dialog.Width=590; $dialog.Height=360
+    $dialog.ResizeMode='NoResize'; $dialog.WindowStartupLocation='CenterOwner'; $dialog.Owner=$window; $dialog.Background='#09090B'; $dialog.Foreground='#F8FAFC'
+    $root=[Windows.Controls.StackPanel]::new(); $root.Margin=[Windows.Thickness]::new(28)
+    $title=[Windows.Controls.TextBlock]::new(); $title.Text='Licencjogosultságok szimulálása'; $title.FontSize=23; $title.FontWeight='Bold'
+    $info=[Windows.Controls.TextBlock]::new(); $info.Text="A saját Owner fiókod marad bejelentkezve. A kiválasztás csak a céllicenc funkcióit tölti be teszteléshez; nem lép be a vásárló Discord-fiókjába."; $info.TextWrapping='Wrap'; $info.Foreground='#CBD5E1'; $info.Margin=[Windows.Thickness]::new(0,12,0,16)
+    $combo=[Windows.Controls.ComboBox]::new(); $combo.Height=38; $combo.DisplayMemberPath='label'; $combo.SelectedValuePath='license_id'
+    [void]$combo.Items.Add([PSCustomObject]@{label='Normál SoundLift (saját Owner jogosultság)';license_id=''})
+    foreach($target in @($targets.targets)){[void]$combo.Items.Add([PSCustomObject]@{label=[string]$target.label;license_id=[string]$target.license_id})}
+    $combo.SelectedIndex=0
+    $notice=[Windows.Controls.TextBlock]::new(); $notice.Text='Biztonság: a backend minden váltásnál újra ellenőrzi az Owner licencet és a célt.'; $notice.Foreground='#94A3B8'; $notice.Margin=[Windows.Thickness]::new(0,12,0,18)
+    $buttons=[Windows.Controls.StackPanel]::new(); $buttons.Orientation='Horizontal'; $buttons.HorizontalAlignment='Right'
+    $cancel=[Windows.Controls.Button]::new(); $cancel.Content='Mégse'; $cancel.Width=105; $cancel.Height=38; $cancel.Margin=[Windows.Thickness]::new(0,0,10,0)
+    $apply=[Windows.Controls.Button]::new(); $apply.Content='Tesztmód alkalmazása'; $apply.Width=180; $apply.Height=38
+    $selection=@{accepted=$false;id=''}
+    $cancel.Add_Click({$dialog.Close()}.GetNewClosure())
+    $apply.Add_Click({if($combo.SelectedItem){$selection.accepted=$true;$selection.id=[string]$combo.SelectedValue;$dialog.Close()}}.GetNewClosure())
+    foreach($control in @($title,$info,$combo,$notice,$buttons)){[void]$root.Children.Add($control)}
+    [void]$buttons.Children.Add($cancel);[void]$buttons.Children.Add($apply);$dialog.Content=$root;[void]$dialog.ShowDialog()
+    if(-not $selection.accepted){return}
+    try {
+        $response=Invoke-LicenseApi ([string]$saved.key) 'verify' $selection.id
+        if($response.allowed -eq $true){Set-LicenseResponse $response; if([string]::IsNullOrWhiteSpace($selection.id)){Set-LicenseResponse $response -Persist -licenseKey ([string]$saved.key)}; Update-DeveloperControls; $StatusText.Text=if($script:simulatedLicenseLabel){"Owner tesztmód • $($script:simulatedLicenseLabel)"}else{'Owner tesztmód kikapcsolva • saját jogosultságok'}}
+    } catch {[System.Windows.MessageBox]::Show("A tesztmód nem alkalmazható.`n`n$($_.Exception.Message)",'SoundLift – Owner tesztmód','OK','Error')|Out-Null}
+}
+
 $RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
 $RollbackButton.Add_Click({ Restore-SoundLiftPreviousVersion })
 
@@ -1542,7 +1613,15 @@ function Update-DeveloperControls {
     } else {
         $RollbackButton.Visibility = 'Collapsed'; $RollbackButton.IsEnabled = $false
     }
+    $OwnerModeButton.Visibility = if($script:isOwner){'Visible'}else{'Collapsed'}
+    $ExtraBassProButton.Visibility = if($script:licenseFeatures.ContainsKey('extra_bass_pro')){'Visible'}else{'Collapsed'}
+    $VoiceBoostButton.Visibility = if($script:licenseFeatures.ContainsKey('voice_boost')){'Visible'}else{'Collapsed'}
+    $CustomPresetXButton.Visibility = if($script:licenseFeatures.ContainsKey('custom_preset_x')){'Visible'}else{'Collapsed'}
+    $CustomFeaturesTitle.Visibility = if($script:licenseFeatures.Count -gt 0){'Visible'}else{'Collapsed'}
+    if($script:simulatedLicenseLabel){$LicenseStatusText.Text="Owner teszt: $($script:simulatedLicenseLabel)"}
 }
+
+$OwnerModeButton.Add_Click({Show-OwnerLicenseSimulator})
 
 $LicenseButton.Add_Click({
     if (Confirm-SoundLiftLicense -PromptForKey) {
@@ -1796,6 +1875,13 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.16 – EGYEDI FUNKCIÓK, EGY KÖZÖS BUILD
+• A backend licencenként több feature flaget oszthat ki ugyanahhoz a hivatalos alkalmazáshoz.
+• Az Extra Bass Pro, Voice Boost és Custom Preset X csak a jogosult licencnél jelenik meg.
+• Külön Owner tesztmód szimulálhat egy kiválasztott licencet a vásárló Discord-fiókjába belépés nélkül.
+• A licenc és a kapcsolt Discord-fiók azonosságát a backend most már kötelezően összeveti.
+• A korábbi normál licencek extra funkció nélkül, változatlanul tovább működnek.
+
 V1.3.15 – GYORSVEZÉRLÉS
 • Gyors némítás és visszakapcsolás a tálcáról vagy globális billentyűparanccsal.
 • Kereshető, egyszerűbb gyorsprofil-menü a tálcaikonban.
@@ -2266,7 +2352,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.15'
+$script:trayIcon.Text = 'SoundLift V1.3.16'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

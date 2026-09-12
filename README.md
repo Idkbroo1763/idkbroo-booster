@@ -1,4 +1,4 @@
-# SoundLift V1.3.15
+# SoundLift V1.3.16
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -66,6 +66,11 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - kereshető gyorsprofil-menü a tálcaikonban
 - globális gyors némítás és szerkeszthető billentyűparancsok
 - beépített súgóbuborékok és Ne zavarjanak mód
+- backendből kiosztott, licencenként eltérő egyedi funkciók egyetlen közös buildben
+- Owner tesztmód más licencek jogosultságainak biztonságos szimulálásához
+- Discord-fiók és licenctulajdonos szerveroldali egyezésellenőrzése
+
+Az egyedi funkciók kiosztása és az Owner mód leírása: `licensing/FEATURE-FLAGS.md`.
 
 ## Adatvédelem és naplók
 

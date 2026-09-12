@@ -1,5 +1,5 @@
 name: Build Windows application
-run-name: SoundLift V1.3.15 letöltése
+run-name: SoundLift V1.3.16 letöltése
 
 on:
   workflow_dispatch:
@@ -31,6 +31,10 @@ jobs:
         shell: powershell
         run: .\tests\discord-link.ps1
 
+      - name: Validate feature entitlements
+        shell: powershell
+        run: .\tests\feature-flags.ps1
+
       - name: Build SoundLift.exe
         shell: powershell
         env:
@@ -58,7 +62,7 @@ jobs:
       - name: Upload Windows files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.3.10 letöltése
+          name: SoundLift V1.3.16 letöltése
           path: |
             dist/SoundLift.exe
             dist/SoundLift.Setup.exe
