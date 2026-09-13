@@ -460,7 +460,8 @@ function Show-LicenseKeyDialog {
     $cancel.Add_Click({$dialog.DialogResult=$false}.GetNewClosure())
     $activate.Add_Click({
         $candidate=[string]$input.Text
-        if([string]::IsNullOrWhiteSpace($candidate)-or-not $candidate.Trim().StartsWith('SL-')){$status.Text='A licenckulcs hiányzik vagy nem SL- kezdetű.';$status.Foreground='#FB7185';return}
+        if([string]::IsNullOrWhiteSpace($candidate)-or-not $candidate.Trim().StartsWith('SL-')){# LICENSE_DIALOG_INVALID_KEY
+            $status.Text='A licenckulcs hiányzik vagy nem SL- kezdetű.';$status.Foreground='#FB7185';return}
         $dialog.Tag=$candidate.Trim();$dialog.DialogResult=$true
     }.GetNewClosure())
     $buttons.Children.Add($cancel) | Out-Null; $buttons.Children.Add($activate) | Out-Null
