@@ -1,4 +1,4 @@
-# SoundLift V1.3.19
+# SoundLift V1.3.20
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
@@ -38,7 +38,7 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - beepitett 60 Hz-es basszusteszt
 - Equalizer APO eszkozvalaszto gyorsgomb
 - minden beallitas automatikus megjegyzese
-- globális Ctrl+Alt+1..6 profil-gyorsbillentyűk, játék közben is
+- teljesen személyre szabható globális profil- és némító billentyűparancsok, játék közben is
 - tálcaikon profilváltó menüvel és automatikus értesítésekkel
 - a Windows aktuális alapértelmezett hangkimenetének kijelzése
 - tisztább Brutál basszus profil újrahangolt headroom-védelemmel

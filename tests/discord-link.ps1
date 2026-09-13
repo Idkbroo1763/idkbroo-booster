@@ -29,7 +29,7 @@ foreach ($requiredUniversalBuildFragment in @(
  if (-not $buildSource.Contains($requiredUniversalBuildFragment)) { throw "Missing universal build behavior: $requiredUniversalBuildFragment" }
 }
 if (-not $buildSource.Contains('RELEASE_CONFIGURATION_EMBEDDING_VERIFIED')) { throw 'Missing release configuration verification' }
-if (-not $source.Contains("`$script:appVersion = '1.3.19'")) { throw 'Application version was not updated to 1.3.19' }
+if (-not $source.Contains("`$script:appVersion = '1.3.20'")) { throw 'Application version was not updated to 1.3.20' }
 foreach ($requiredFeature in @('Invoke-SoundLiftDownload','Repair-SoundLiftApoInclude','Show-ProblemReportWindow','Show-PostUpdateResult','Show-PrivacyWindow','Disable-SoundLiftEffects')) {
     if (-not $source.Contains("function $requiredFeature")) { throw "Missing required SoundLift feature: $requiredFeature" }
 }
@@ -39,10 +39,23 @@ foreach ($requiredStartupFix in @('function Start-AsyncAppUpdateCheck', 'Downloa
 foreach ($requiredControlFeature in @(
  'function Invoke-QuickMute', 'function Register-SoundLiftHotKeys', 'function Show-HotkeyEditor',
  'Gyorsprofilok', 'DoNotDisturbCheck', 'ToolTip=',
- '$script:hotKeyVirtualKeys', 'Select-Object -Unique'
+ '$script:hotKeyBindings', 'Get-SoundLiftHotKeyText', 'Test-SoundLiftHotKeyBinding',
+ 'Add_PreviewKeyDown', 'RegisterHotKey($script:windowHandle', 'Select-Object -Unique'
 )) {
     if (-not $source.Contains($requiredControlFeature)) { throw "Missing V1.3.15 quick-control feature: $requiredControlFeature" }
 }
+foreach ($requiredCustomHotkeyFeature in @(
+ 'version = 7',
+ 'modifiers=[int]$_.modifiers; key=[int]$_.key',
+ 'Az F1–F24 billentyűk önmagukban is használhatók.',
+ 'Backspace = kikapcsolás',
+ 'Ugyanaz a kombináció csak egy parancshoz használható.',
+ 'A Ctrl + Alt + Delete rendszerparancs nem állítható be.',
+ 'if ([int]$binding.key -eq 0) { continue }'
+)) {
+    if (-not $source.Contains($requiredCustomHotkeyFeature)) { throw "Missing V1.3.20 custom hotkey behavior: $requiredCustomHotkeyFeature" }
+}
+if ($source.Contains('Minden parancs Ctrl+Alt + a kiválasztott szám')) { throw 'Legacy number-only hotkey editor is still present' }
 if ($source.Contains('Check-AppUpdate -Silent')) { throw 'Blocking startup update check is still enabled' }
 $installerSource = Get-Content "$PSScriptRoot/../installer.iss" -Raw
 $uninstallerSource = Get-Content "$PSScriptRoot/../Uninstall-SoundLift.ps1" -Raw
@@ -116,7 +129,7 @@ try {
  if (Test-Path (Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe')) { throw 'Free user received a rollback executable' }
  $script:currentLicenseType='developer'
  Save-SoundLiftRollbackCopy
- $script:appVersion='1.3.19'
+ $script:appVersion='1.3.20'
  if (-not (Get-SoundLiftRollbackState)) { throw 'Valid rollback copy was rejected' }
  [IO.File]::AppendAllText((Join-Path $script:appDirectory 'rollback\SoundLift.previous.exe'), 'tampered')
  if (Get-SoundLiftRollbackState) { throw 'Tampered rollback copy was accepted' }
