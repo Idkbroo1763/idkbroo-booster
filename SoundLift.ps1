@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.17'
+$script:appVersion = '1.3.18'
 $script:hotKeyVirtualKeys = @(0x31,0x32,0x33,0x34,0x35,0x36,0x30)
 $script:doNotDisturb = $false
 $script:isQuickMuted = $false
@@ -460,9 +460,11 @@ function Show-LicenseKeyDialog {
     $cancel.Add_Click({$dialog.DialogResult=$false}.GetNewClosure())
     $activate.Add_Click({
         $candidate=[string]$input.Text
-        if([string]::IsNullOrWhiteSpace($candidate)-or-not $candidate.Trim().StartsWith('SL-')){# LICENSE_DIALOG_INVALID_KEY
-            $status.Text='A licenckulcs hiányzik vagy nem SL- kezdetű.';$status.Foreground='#FB7185';return}
-        $dialog.Tag=$candidate.Trim();$dialog.DialogResult=$true
+        # LICENSE_DIALOG_INVALID_KEY: a teljes kimásolt konzolsorból is
+        # biztonságosan csak a szabályos SoundLift-kulcsot vesszük át.
+        $keyMatch=[Regex]::Match($candidate,'(?i)SL-[A-F0-9]{32}')
+        if(-not $keyMatch.Success){$status.Text='Nem található teljes SoundLift-licenckulcs. A kulcs formátuma: SL- és 32 karakter.';$status.Foreground='#FB7185';return}
+        $dialog.Tag=$keyMatch.Value.ToUpperInvariant();$dialog.DialogResult=$true
     }.GetNewClosure())
     $buttons.Children.Add($cancel) | Out-Null; $buttons.Children.Add($activate) | Out-Null
     $root.Children.Add($title) | Out-Null; $root.Children.Add($info) | Out-Null; $root.Children.Add($input) | Out-Null; $root.Children.Add($status)|Out-Null; $root.Children.Add($buttons) | Out-Null
@@ -552,7 +554,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.17" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.18" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -712,7 +714,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.17" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.18" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -798,7 +800,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.17" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.18" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -1883,6 +1885,10 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.18 – LICENCKULCS BEILLESZTÉSÉNEK JAVÍTÁSA
+• A SoundLift automatikusan felismeri az SL-kulcsot a PowerShellből kimásolt teljes sorban is.
+• A címkék, idézőjelek, sortörések és rejtett másolási karakterek nem akadályozzák az aktiválást.
+
 V1.3.17 – LICENCAKTIVÁLÁS JAVÍTÁSA
 • A licencablak aktiválógombja megbízhatóan lezárja az adatbevitelt és elindítja az ellenőrzést.
 • Hibás vagy hiányos kulcsnál az ablakban azonnal érthető visszajelzés jelenik meg.
@@ -2365,7 +2371,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.17'
+$script:trayIcon.Text = 'SoundLift V1.3.18'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')

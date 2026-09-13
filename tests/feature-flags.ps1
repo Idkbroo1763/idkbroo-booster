@@ -17,5 +17,6 @@ foreach($marker in @('Set-LicenseFeatures','Show-OwnerLicenseSimulator','OwnerMo
 foreach($marker in @('$activate.IsDefault=$true','$dialog.DialogResult=$true','LICENSE_DIALOG_INVALID_KEY')){
  if(-not $client.Contains($marker)){throw "Missing reliable license dialog behavior: $marker"}
 }
+if(-not $client.Contains("[Regex]::Match(`$candidate,'(?i)SL-[A-F0-9]{32}')")){throw 'License key extraction is missing'}
 if($client.Contains("`$script:isOwner = `$true")){throw 'Owner permission is hard-coded in the client'}
 Write-Host 'PASS: backend-gated flags, Discord ownership, Owner simulation and client visibility wiring'
