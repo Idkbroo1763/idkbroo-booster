@@ -14,5 +14,8 @@ foreach($marker in @('set_license_feature','upsert_feature','set_owner')){if(-no
 foreach($marker in @('Set-LicenseFeatures','Show-OwnerLicenseSimulator','OwnerModeButton','ExtraBassProButton','VoiceBoostButton','CustomPresetXButton')){
  if(-not $client.Contains($marker)){throw "Missing client entitlement feature: $marker"}
 }
+foreach($marker in @('$activate.IsDefault=$true','$dialog.DialogResult=$true','A licenckulcs hiányzik vagy nem SL- kezdetű.')){
+ if(-not $client.Contains($marker)){throw "Missing reliable license dialog behavior: $marker"}
+}
 if($client.Contains("`$script:isOwner = `$true")){throw 'Owner permission is hard-coded in the client'}
 Write-Host 'PASS: backend-gated flags, Discord ownership, Owner simulation and client visibility wiring'

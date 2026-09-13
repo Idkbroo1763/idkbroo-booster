@@ -17,7 +17,7 @@ $script:appLaunchPath = if ($script:isPackagedExe) {
 } else {
     Join-Path $script:appDirectory 'SoundLift.bat'
 }
-$script:appVersion = '1.3.16'
+$script:appVersion = '1.3.17'
 $script:hotKeyVirtualKeys = @(0x31,0x32,0x33,0x34,0x35,0x36,0x30)
 $script:doNotDisturb = $false
 $script:isQuickMuted = $false
@@ -446,20 +446,27 @@ function Set-LicenseResponse([object]$response, [switch]$Persist, [string]$licen
 }
 
 function Show-LicenseKeyDialog {
-    $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Licencaktiválás'; $dialog.Width = 560; $dialog.Height = 310
-    $dialog.ResizeMode = 'NoResize'; $dialog.WindowStartupLocation = 'CenterScreen'; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
+    $dialog = [Windows.Window]::new(); $dialog.Title = 'SoundLift – Licencaktiválás'; $dialog.Width = 560; $dialog.Height = 350
+    $dialog.ResizeMode = 'NoResize'; $dialog.WindowStartupLocation = 'CenterOwner'; $dialog.Owner=$window; $dialog.Background = '#09090B'; $dialog.Foreground = '#F8FAFC'
     $root = [Windows.Controls.StackPanel]::new(); $root.Margin = [Windows.Thickness]::new(28)
     $title = [Windows.Controls.TextBlock]::new(); $title.Text = 'Vásárlói licenc aktiválása'; $title.FontSize = 23; $title.FontWeight = 'Bold'
     $info = [Windows.Controls.TextBlock]::new(); $info.Text = "Írd be a vásárláskor kapott licenckulcsot.`nA kulcs az első sikeres aktiváláskor ehhez a számítógéphez kapcsolódik."; $info.TextWrapping = 'Wrap'; $info.Margin = [Windows.Thickness]::new(0,12,0,16); $info.Foreground = '#CBD5E1'
     $input = [Windows.Controls.TextBox]::new(); $input.Height = 38; $input.Padding = [Windows.Thickness]::new(8); $input.FontSize = 14
+    $status=[Windows.Controls.TextBlock]::new();$status.Text='Illeszd be a teljes, SL- kezdetű kulcsot.';$status.Foreground='#94A3B8';$status.Margin=[Windows.Thickness]::new(0,8,0,0)
     $buttons = [Windows.Controls.StackPanel]::new(); $buttons.Orientation = 'Horizontal'; $buttons.HorizontalAlignment = 'Right'; $buttons.Margin = [Windows.Thickness]::new(0,18,0,0)
     $cancel = [Windows.Controls.Button]::new(); $cancel.Content = 'Mégse'; $cancel.Width = 100; $cancel.Height = 38; $cancel.Margin = [Windows.Thickness]::new(0,0,10,0)
-    $activate = [Windows.Controls.Button]::new(); $activate.Content = 'Aktiválás'; $activate.Width = 125; $activate.Height = 38
-    $result = @{ key = $null }; $cancel.Add_Click({ $dialog.Close() }.GetNewClosure())
-    $activate.Add_Click({ if (-not [string]::IsNullOrWhiteSpace($input.Text)) { $result.key = $input.Text.Trim(); $dialog.Close() } }.GetNewClosure())
+    $activate = [Windows.Controls.Button]::new(); $activate.Content = 'Licenc aktiválása'; $activate.Width = 150; $activate.Height = 38; $activate.IsDefault=$true
+    $cancel.IsCancel=$true; $dialog.Tag=$null
+    $cancel.Add_Click({$dialog.DialogResult=$false}.GetNewClosure())
+    $activate.Add_Click({
+        $candidate=[string]$input.Text
+        if([string]::IsNullOrWhiteSpace($candidate)-or-not $candidate.Trim().StartsWith('SL-')){$status.Text='A licenckulcs hiányzik vagy nem SL- kezdetű.';$status.Foreground='#FB7185';return}
+        $dialog.Tag=$candidate.Trim();$dialog.DialogResult=$true
+    }.GetNewClosure())
     $buttons.Children.Add($cancel) | Out-Null; $buttons.Children.Add($activate) | Out-Null
-    $root.Children.Add($title) | Out-Null; $root.Children.Add($info) | Out-Null; $root.Children.Add($input) | Out-Null; $root.Children.Add($buttons) | Out-Null
-    $dialog.Content = $root; $dialog.ShowDialog() | Out-Null; return $result.key
+    $root.Children.Add($title) | Out-Null; $root.Children.Add($info) | Out-Null; $root.Children.Add($input) | Out-Null; $root.Children.Add($status)|Out-Null; $root.Children.Add($buttons) | Out-Null
+    $dialog.Content=$root;$input.Focus()|Out-Null
+    if($dialog.ShowDialog()-eq $true){return [string]$dialog.Tag};return $null
 }
 
 function Confirm-SoundLiftLicense {
@@ -544,7 +551,7 @@ if (-not (Confirm-DiscordAccountLink)) {
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SoundLift V1.3.16" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
+        Title="SoundLift V1.3.17" Width="1180" Height="840" MinWidth="1000" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#070707" Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI" ResizeMode="CanResizeWithGrip" ShowInTaskbar="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -704,7 +711,7 @@ $xaml = @'
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="SOUNDLIFT" FontFamily="Segoe UI Black" FontSize="29" Foreground="{DynamicResource AccentTextBrush}"/>
-        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.16" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
+        <TextBlock Text="WINDOWS HANGVEZÉRLŐ  •  V1.3.17" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource MutedTextBrush}" Margin="1,3,0,0"/>
       </StackPanel>
       <Border Name="StatusBorder" Grid.Column="1" Background="#171719" CornerRadius="13" Padding="16,11" BorderBrush="#303035" BorderThickness="1">
         <StackPanel>
@@ -790,7 +797,7 @@ $xaml = @'
                 </Style>
               </ComboBox.Resources>
             </ComboBox>
-            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.16" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
+            <TextBlock Name="VersionText" Text="Telepített verzió: 1.3.17" Foreground="#64748B" FontSize="11" Margin="4,0,0,6"/>
             <TextBlock Name="SupportIdText" Text="Támogatási ID: betöltés…" Foreground="#94A3B8" FontSize="11" Margin="4,0,0,4"/>
             <Button Name="CopySupportIdButton" Content="⧉  Támogatási ID másolása" Style="{StaticResource UtilityButton}"/>
             <TextBlock Name="LicenseStatusText" Text="Licenc: ingyenes" Foreground="#94A3B8" FontSize="11" Margin="4,5,0,4"/>
@@ -1875,6 +1882,11 @@ $PrivacyButton.Add_Click({ Show-PrivacyWindow })
 
 function Show-ChangelogWindow {
     $changelog = @"
+V1.3.17 – LICENCAKTIVÁLÁS JAVÍTÁSA
+• A licencablak aktiválógombja megbízhatóan lezárja az adatbevitelt és elindítja az ellenőrzést.
+• Hibás vagy hiányos kulcsnál az ablakban azonnal érthető visszajelzés jelenik meg.
+• Az Enter billentyűvel is elindítható az aktiválás, az ablak pedig mindig a SoundLift előtt marad.
+
 V1.3.16 – EGYEDI FUNKCIÓK, EGY KÖZÖS BUILD
 • A backend licencenként több feature flaget oszthat ki ugyanahhoz a hivatalos alkalmazáshoz.
 • Az Extra Bass Pro, Voice Boost és Custom Preset X csak a jogosult licencnél jelenik meg.
@@ -2352,7 +2364,7 @@ $window.Add_SourceInitialized({
 $script:reallyExit = $false
 $script:trayIcon = New-Object Windows.Forms.NotifyIcon
 $script:trayIcon.Icon = if (Test-Path $appIconPath) { New-Object Drawing.Icon($appIconPath) } else { [Drawing.SystemIcons]::Application }
-$script:trayIcon.Text = 'SoundLift V1.3.16'
+$script:trayIcon.Text = 'SoundLift V1.3.17'
 $script:trayIcon.Visible = $true
 $trayMenu = New-Object Windows.Forms.ContextMenuStrip
 $showItem = $trayMenu.Items.Add('Megnyitás')
