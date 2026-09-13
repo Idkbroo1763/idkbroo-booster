@@ -1,7 +1,10 @@
-# SoundLift V1.0.1
+# SoundLift V1.3.20
 
 Modern Windows-hangvezérlő profilokkal, basszuskiemeléssel, tízsávos
 equalizerrel és akár 300%-os hangerő-erősítéssel.
+
+A FiveM-profilok egyértelműen FiveM RP és FiveM PvP néven jelennek meg.
+Nyolc választható sötét megjelenés érhető el, köztük az OLED fekete téma.
 
 Az egyedi SoundLift ikon az ablakban, a tálcán és a Windowszal
 induló parancsikonon is megjelenik.
@@ -26,7 +29,7 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - az eredeti Equalizer APO-konfiguráció egyszeri biztonsági mentése
 - automatikus rendszergazdai indítás egyetlen Windows-engedélykéréssel
 - leválasztott, rejtett PowerShell-folyamat: a parancssor bezárása nem állítja le az appot
-- R6, FiveM RP és FiveM harc profil
+- R6, FiveM RP és FiveM PvP profil
 - kiegyensúlyozott játékprofilok: testes hangzás, enyhén kiemelt lépések és részletek
 - sajat profil mentese es betoltese
 - JSON profil importalas es exportalas
@@ -35,17 +38,53 @@ Windows 10/11 rendszerhang-erősítő és basszusvezérlő az Equalizer APO-hoz.
 - beepitett 60 Hz-es basszusteszt
 - Equalizer APO eszkozvalaszto gyorsgomb
 - minden beallitas automatikus megjegyzese
-- globális Ctrl+Alt+1..6 profil-gyorsbillentyűk, játék közben is
+- teljesen személyre szabható globális profil- és némító billentyűparancsok, játék közben is
 - tálcaikon profilváltó menüvel és automatikus értesítésekkel
 - a Windows aktuális alapértelmezett hangkimenetének kijelzése
 - tisztább Brutál basszus profil újrahangolt headroom-védelemmel
 - külön sub-bass, fő basszus és ütős 115 Hz-es basszusszűrő
 - 25 Hz-es high-pass szűrő a felesleges mélyrezgések csökkentésére
 - elkülönített konfiguráció, amely nem törli a meglévő Equalizer APO-beállításokat
+- központi indítási, összeomlási, frissítési, licenc- és biztonsági naplózás
+- sikertelen hibajelentés automatikus újraküldése a következő indításkor
+- kötelező, hitelesített Discord OAuth-összekapcsolás, amely frissítés után is megmarad
+- a Discord-fiókhoz kapcsolt támogatási azonosító a gyorsabb hibakereséshez
+- egyetlen univerzális telepítő ingyenes, vásárlói és fejlesztői módhoz
+- alkalmazáson belüli licencaktiválás, amely a frissítések után is megmarad
+- kizárólag developer licenccel elérhető, ellenőrzött verzió-visszaállítás
+- élő frissítési folyamatjelző letöltési százalékkal és telepítési állapottal
+- frissítés utáni automatikus verzióellenőrzés és siker-visszajelzés
+- egygombos Equalizer APO Include-javítás biztonsági mentéssel
+- elküldés előtti, teljes diagnosztikai előnézetet biztosító hibajelentés
+- opcionális saját hibaleírás a diagnosztikai jelentésekben
+- alkalmazáson belül megnyitható, részletes adatvédelmi tájékoztató
+- egységes, közérthető magyar kezelőfelület és pontosabb állapotüzenetek
+- 30 napos, korábbi hitelesítéshez kötött offline működés
+- egygombos biztonságos mód az eredeti hang azonnali visszaállításához
+- tiszta eltávolítás az APO-kapcsolat és a helyi SoundLift-adatok törlésével
+- automatikus működési tesztek a kiadások előtt
+- kereshető gyorsprofil-menü a tálcaikonban
+- globális gyors némítás és szerkeszthető billentyűparancsok
+- beépített súgóbuborékok és Ne zavarjanak mód
+- backendből kiosztott, licencenként eltérő egyedi funkciók egyetlen közös buildben
+- Owner tesztmód más licencek jogosultságainak biztonságos szimulálásához
+- Discord-fiók és licenctulajdonos szerveroldali egyezésellenőrzése
+
+Az egyedi funkciók kiosztása és az Owner mód leírása: `licensing/FEATURE-FLAGS.md`.
+
+## Adatvédelem és naplók
+
+A részletes helyi technikai naplók a `%LOCALAPPDATA%\SoundLift\logs\` mappában
+találhatók, és 14 nap után automatikusan törlődnek. A beállított naplószervernek
+csak a működéshez, hibakereséshez, licenchez és biztonsághoz szükséges technikai
+események kerülnek elküldésre. A kötelező összekapcsolás a Discord felhasználói
+azonosítót és a megjelenített nevet a Supabase backendben tárolja. A kliens nem
+küld nyers licenckulcsot, Windows-felhasználónevet, teljes gépazonosítót,
+Discord-üzeneteket, szerverlistát vagy kattintási előzményt.
 
 ## Indítás
 
-Olvasd el a `TELEPÍTÉS.txt` fájlt, majd indítsd el a `SoundLift Setup.exe` telepítőt.
+Olvasd el a `TELEPÍTÉS.txt` fájlt, majd indítsd el a `SoundLift.Setup.exe` telepítőt.
 
 ## Megjegyzés
 

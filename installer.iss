@@ -1,5 +1,5 @@
 #define AppName "SoundLift"
-#define AppVersion "1.0.1"
+#define AppVersion "1.3.20"
 #define AppPublisher "idkbroo"
 #define AppExeName "SoundLift.exe"
 
@@ -12,7 +12,7 @@ DefaultDirName={autopf}\SoundLift
 DefaultGroupName={#AppName}
 UninstallDisplayIcon={app}\{#AppExeName}
 OutputDir=dist
-OutputBaseFilename=SoundLift Setup
+OutputBaseFilename=SoundLift.Setup
 SetupIconFile=SoundLift.ico
 Compression=lzma2
 SolidCompression=yes
@@ -24,6 +24,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Files]
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\SoundLift.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "Uninstall-SoundLift.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -34,3 +35,6 @@ Name: "desktopicon"; Description: "Asztali parancsikon létrehozása"; GroupDesc
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{#AppName} indítása"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Uninstall-SoundLift.ps1"""; Flags: runhidden waituntilterminated

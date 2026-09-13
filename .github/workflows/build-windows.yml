@@ -1,15 +1,22 @@
 name: Build Windows application
-run-name: SoundLift V1.0.1 letöltése
+run-name: SoundLift V1.3.20 letöltése
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Végleges frissítés közzététele az alkalmazáson belüli frissítőhöz"
+        required: true
+        type: boolean
+        default: false
   push:
-    branches: [main]
+    branches: [main, logging-foundation]
+    tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, licensing-foundation]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -20,8 +27,19 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Validate Discord gate
+        shell: powershell
+        run: .\tests\discord-link.ps1
+
+      - name: Validate feature entitlements
+        shell: powershell
+        run: .\tests\feature-flags.ps1
+
       - name: Build SoundLift.exe
         shell: powershell
+        env:
+          SOUNDLIFT_LOG_API_URL: ${{ secrets.SOUNDLIFT_LOG_API_URL }}
+          SOUNDLIFT_LOG_ANON_KEY: ${{ secrets.SOUNDLIFT_LOG_ANON_KEY }}
         run: .\build-windows.ps1
 
       - name: Build installer
@@ -34,7 +52,7 @@ jobs:
       - name: Create SHA-256 checksums
         shell: powershell
         run: |
-          $files = @('dist\SoundLift.exe', 'dist\SoundLift Setup.exe', 'dist\SoundLift.ico')
+          $files = @('dist\SoundLift.exe', 'dist\SoundLift.Setup.exe', 'dist\SoundLift.ico')
           $lines = foreach ($file in $files) {
             $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $([IO.Path]::GetFileName($file))"
@@ -44,11 +62,39 @@ jobs:
       - name: Upload Windows files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SoundLift V1.0.1 letöltése
+          name: SoundLift V1.3.20 letöltése
           path: |
             dist/SoundLift.exe
-            dist/SoundLift Setup.exe
+            dist/SoundLift.Setup.exe
             dist/SoundLift.ico
             dist/SHA256SUMS.txt
             TELEPÍTÉS.txt
           if-no-files-found: error
+
+      - name: Publish automatic update release
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/logging-foundation' || inputs.publish_release == true
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$((Get-Content -LiteralPath '.\VERSION.txt' -Raw).Trim())"
+          $arguments = @(
+            $tag,
+            '.\dist\SoundLift.Setup.exe',
+            '.\dist\SHA256SUMS.txt',
+            '--repo', '${{ github.repository }}',
+            '--title', "SoundLift $tag",
+            '--target', '${{ github.sha }}',
+            '--latest',
+            '--generate-notes'
+          )
+          $oldErrorActionPreference = $ErrorActionPreference
+          $ErrorActionPreference = 'SilentlyContinue'
+          gh release view $tag --repo '${{ github.repository }}' *> $null
+          $releaseExists = $LASTEXITCODE -eq 0
+          $ErrorActionPreference = $oldErrorActionPreference
+          if ($releaseExists) {
+            gh release upload $tag '.\dist\SoundLift.Setup.exe' '.\dist\SHA256SUMS.txt' --repo '${{ github.repository }}' --clobber
+          } else {
+            gh release create @arguments
+          }
