@@ -47,10 +47,10 @@ foreach ($requiredControlFeature in @(
 foreach ($requiredCustomHotkeyFeature in @(
  'version = 7',
  'modifiers=[int]$_.modifiers; key=[int]$_.key',
- 'Az F1–F24 billentyűk önmagukban is használhatók.',
- 'Backspace = kikapcsolás',
- 'Ugyanaz a kombináció csak egy parancshoz használható.',
- 'A Ctrl + Alt + Delete rendszerparancs nem állítható be.',
+ '$modifiers -eq 0 -and ($key -lt 0x70 -or $key -gt 0x87)',
+ '$pressedKey -eq [Windows.Input.Key]::Back',
+ '$activeSignatures|Select-Object -Unique',
+ '($modifiers -band 3) -eq 3 -and $key -eq 0x2E',
  'if ([int]$binding.key -eq 0) { continue }'
 )) {
     if (-not $source.Contains($requiredCustomHotkeyFeature)) { throw "Missing V1.3.20 custom hotkey behavior: $requiredCustomHotkeyFeature" }
